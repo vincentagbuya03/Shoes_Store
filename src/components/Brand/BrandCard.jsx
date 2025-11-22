@@ -62,7 +62,7 @@ export default function BrandCard({
             {title}
           </h3>
           {description && (
-            <p className="text-sm text-gray-600 line-clamp-2">
+            <p className="text-sm text-gray-600 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
               {description}
             </p>
           )}

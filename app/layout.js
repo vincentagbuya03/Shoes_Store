@@ -1,4 +1,5 @@
 import './globals.css'
+import Link from 'next/link'
 
 export const metadata = {
   title: 'ShoeTakels - Premium Shoe Brands',
@@ -12,10 +13,10 @@ export default function RootLayout({ children }) {
         <nav className="border-b">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
-              <a href="/" className="text-2xl font-bold">ShoeTakels</a>
+              <Link href="/" className="text-2xl font-bold">ShoeTakels</Link>
               <div className="flex gap-6">
-                <a href="/" className="hover:text-gray-600 transition-colors">Home</a>
-                <a href="/brand" className="hover:text-gray-600 transition-colors">Brand</a>
+                <Link href="/" className="hover:text-gray-600 transition-colors">Home</Link>
+                <Link href="/brand" className="hover:text-gray-600 transition-colors">Brand</Link>
                 <a href="/index.php" className="hover:text-gray-600 transition-colors">Shop</a>
               </div>
             </div>
