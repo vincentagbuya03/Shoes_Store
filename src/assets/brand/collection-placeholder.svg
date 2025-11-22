@@ -1,0 +1,16 @@
+<svg width="800" height="600" viewBox="0 0 800 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="url(#gradient)"/>
+  <defs>
+    <linearGradient id="gradient" x1="0" y1="0" x2="800" y2="600" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E5E7EB"/>
+      <stop offset="1" stop-color="#F3F4F6"/>
+    </linearGradient>
+  </defs>
+  <g opacity="0.4">
+    <path d="M200 300L350 200L500 300L650 150" stroke="#9CA3AF" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="350" cy="200" r="8" fill="#6B7280"/>
+    <circle cx="500" cy="300" r="8" fill="#6B7280"/>
+    <circle cx="650" cy="150" r="8" fill="#6B7280"/>
+  </g>
+  <text x="400" y="320" font-family="Arial, sans-serif" font-size="24" fill="#6B7280" text-anchor="middle" font-weight="600">Collection Image</text>
+</svg>
