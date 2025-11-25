@@ -25,8 +25,8 @@ class AuthController extends Controller
             ], 400);
         }
 
-        // Demo credentials for testing
-        // In production, validate against database
+        // Demo credentials for testing without database
+        // NOTE: Remove or disable in production - these are for development only
         if ($email === 'rider@demo.com' && $password === 'password123') {
             return response()->json([
                 'success' => true,

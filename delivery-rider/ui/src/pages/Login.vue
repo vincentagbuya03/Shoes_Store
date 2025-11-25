@@ -139,7 +139,8 @@ export default {
           this.$router.push('/dashboard')
         }
       } catch (err) {
-        // For demo purposes, allow demo credentials
+        // Demo mode: allow demo credentials when API is not available
+        // NOTE: Remove this block in production - demo credentials are for testing only
         if (this.email === 'rider@demo.com' && this.password === 'password123') {
           localStorage.setItem('token', 'demo-token-12345')
           localStorage.setItem('rider', JSON.stringify({
