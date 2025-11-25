@@ -73,7 +73,10 @@ const getStatusLabel = (status) => {
 }
 
 const updateStatus = (delivery, newStatus) => {
-  delivery.status = newStatus
+  const index = deliveries.value.findIndex(d => d.id === delivery.id)
+  if (index !== -1) {
+    deliveries.value[index] = { ...deliveries.value[index], status: newStatus }
+  }
 }
 
 const selectDelivery = (delivery) => {
