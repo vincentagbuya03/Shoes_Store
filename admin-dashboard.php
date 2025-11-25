@@ -18,53 +18,81 @@ $total_revenue = 0;
 $total_brands = 0;
 
 // Get total products
-$result = $conn->query("SELECT COUNT(*) as count FROM product");
-if ($result && $row = $result->fetch_assoc()) {
-    $total_products = $row['count'];
+$stmt = $conn->prepare("SELECT COUNT(*) as count FROM product");
+if ($stmt) {
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result && $row = $result->fetch_assoc()) {
+        $total_products = $row['count'];
+    }
+    $stmt->close();
 }
 
 // Get total customers
-$result = $conn->query("SELECT COUNT(*) as count FROM customer");
-if ($result && $row = $result->fetch_assoc()) {
-    $total_customers = $row['count'];
+$stmt = $conn->prepare("SELECT COUNT(*) as count FROM customer");
+if ($stmt) {
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result && $row = $result->fetch_assoc()) {
+        $total_customers = $row['count'];
+    }
+    $stmt->close();
 }
 
 // Get total orders
-$result = $conn->query("SELECT COUNT(*) as count FROM orders");
-if ($result && $row = $result->fetch_assoc()) {
-    $total_orders = $row['count'];
+$stmt = $conn->prepare("SELECT COUNT(*) as count FROM orders");
+if ($stmt) {
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result && $row = $result->fetch_assoc()) {
+        $total_orders = $row['count'];
+    }
+    $stmt->close();
 }
 
 // Get total revenue
-$result = $conn->query("SELECT SUM(total_amount) as revenue FROM orders WHERE status != 'cancelled'");
-if ($result && $row = $result->fetch_assoc()) {
-    $total_revenue = $row['revenue'] ?? 0;
+$stmt = $conn->prepare("SELECT SUM(total_amount) as revenue FROM orders WHERE status != 'cancelled'");
+if ($stmt) {
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result && $row = $result->fetch_assoc()) {
+        $total_revenue = $row['revenue'] ?? 0;
+    }
+    $stmt->close();
 }
 
 // Get total brands
-$result = $conn->query("SELECT COUNT(*) as count FROM brand");
-if ($result && $row = $result->fetch_assoc()) {
-    $total_brands = $row['count'];
+$stmt = $conn->prepare("SELECT COUNT(*) as count FROM brand");
+if ($stmt) {
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result && $row = $result->fetch_assoc()) {
+        $total_brands = $row['count'];
+    }
+    $stmt->close();
 }
 
 // Get recent orders
 $recent_orders = [];
-$result = $conn->query("
+$stmt = $conn->prepare("
     SELECT o.order_id, o.total_amount, o.status, o.order_date, c.name as customer_name
     FROM orders o
     LEFT JOIN customer c ON o.customer_id = c.customer_id
     ORDER BY o.order_date DESC
     LIMIT 5
 ");
-if ($result) {
+if ($stmt) {
+    $stmt->execute();
+    $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         $recent_orders[] = $row;
     }
+    $stmt->close();
 }
 
 // Get top products
 $top_products = [];
-$result = $conn->query("
+$stmt = $conn->prepare("
     SELECT p.name, p.price, b.brand_name, pi.image_url
     FROM product p
     LEFT JOIN brand b ON p.brand_id = b.brand_id
@@ -72,10 +100,13 @@ $result = $conn->query("
     ORDER BY p.created_at DESC
     LIMIT 5
 ");
-if ($result) {
+if ($stmt) {
+    $stmt->execute();
+    $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         $top_products[] = $row;
     }
+    $stmt->close();
 }
 
 // Get monthly sales data for chart (mock data since there may not be orders)
@@ -96,11 +127,14 @@ $monthly_sales = [
 
 // Get category distribution
 $category_data = [];
-$result = $conn->query("SELECT category, COUNT(*) as count FROM product GROUP BY category");
-if ($result) {
+$stmt = $conn->prepare("SELECT category, COUNT(*) as count FROM product GROUP BY category");
+if ($stmt) {
+    $stmt->execute();
+    $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
         $category_data[$row['category']] = $row['count'];
     }
+    $stmt->close();
 }
 ?>
 <!DOCTYPE html>
