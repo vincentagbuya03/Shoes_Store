@@ -1,8 +1,27 @@
 <?php
 session_start();
 
+// Authentication check - redirect to login if not authenticated as rider
+// Note: In production, add proper rider authentication check
+// if (!isset($_SESSION['rider_id'])) {
+//     header('Location: login.php');
+//     exit();
+// }
+
+// Dynamic greeting based on time of day
+$hour = (int)date('H');
+if ($hour >= 5 && $hour < 12) {
+    $greeting = "Good Morning";
+} elseif ($hour >= 12 && $hour < 17) {
+    $greeting = "Good Afternoon";
+} elseif ($hour >= 17 && $hour < 21) {
+    $greeting = "Good Evening";
+} else {
+    $greeting = "Hello";
+}
+
 // Demo data for the delivery rider dashboard
-$rider_name = "John Rider";
+$rider_name = $_SESSION['rider_name'] ?? "John Rider";
 $today_deliveries = 12;
 $pending_deliveries = 5;
 $completed_deliveries = 7;
@@ -160,7 +179,7 @@ $max_deliveries = max(array_column($weekly_stats, 'deliveries'));
                         </svg>
                     </button>
                     <div class="greeting">
-                        <h1>Good Morning, <?php echo htmlspecialchars($rider_name); ?>! 👋</h1>
+                        <h1><?php echo htmlspecialchars($greeting); ?>, <?php echo htmlspecialchars($rider_name); ?>! 👋</h1>
                         <p>Here's your delivery overview for today</p>
                     </div>
                 </div>
@@ -509,7 +528,8 @@ $max_deliveries = max(array_column($weekly_stats, 'deliveries'));
             const bars = document.querySelectorAll('.bar-fill');
             bars.forEach((bar, index) => {
                 setTimeout(() => {
-                    bar.style.height = bar.parentElement.style.getPropertyValue('--bar-height');
+                    const barHeight = bar.parentElement.style.getPropertyValue('--bar-height') || '0%';
+                    bar.style.height = barHeight;
                 }, index * 100);
             });
 
