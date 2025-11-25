@@ -113,32 +113,56 @@
   // ============================================
 
   /**
+   * Apply combined search and status filters to the deliveries table
+   * Both filters work together: rows must match search term AND status filter
+   */
+  function applyFilters() {
+    const searchInput = document.getElementById('deliverySearch');
+    const filterSelect = document.getElementById('statusFilter');
+    const tableBody = document.getElementById('deliveriesTableBody');
+    
+    if (!tableBody) return;
+
+    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const filterValue = filterSelect ? filterSelect.value.toLowerCase() : 'all';
+    const rows = tableBody.querySelectorAll('tr');
+
+    rows.forEach(function(row) {
+      const text = row.textContent.toLowerCase();
+      const statusBadge = row.querySelector('.status-badge');
+      
+      // Check if row matches search term
+      const matchesSearch = searchTerm === '' || text.includes(searchTerm);
+      
+      // Check if row matches status filter
+      let matchesStatus = true;
+      if (filterValue !== 'all' && statusBadge) {
+        matchesStatus = statusBadge.classList.contains(filterValue);
+      }
+      
+      // Row is visible only if it matches both filters
+      const isVisible = matchesSearch && matchesStatus;
+      row.style.display = isVisible ? '' : 'none';
+      
+      if (isVisible) {
+        row.style.opacity = '1';
+      }
+    });
+
+    // Update visible count
+    updateVisibleCount();
+  }
+
+  /**
    * Initialize search filter for deliveries table
    */
   function initSearchFilter() {
     const searchInput = document.getElementById('deliverySearch');
-    const tableBody = document.getElementById('deliveriesTableBody');
     
-    if (!searchInput || !tableBody) return;
+    if (!searchInput) return;
 
-    searchInput.addEventListener('input', function(e) {
-      const searchTerm = e.target.value.toLowerCase().trim();
-      const rows = tableBody.querySelectorAll('tr');
-
-      rows.forEach(function(row) {
-        const text = row.textContent.toLowerCase();
-        const isVisible = text.includes(searchTerm);
-        
-        row.style.display = isVisible ? '' : 'none';
-        
-        // Add/remove animation class
-        if (isVisible) {
-          row.style.opacity = '1';
-        }
-      });
-
-      // Update visible count
-      updateVisibleCount();
+    searchInput.addEventListener('input', function() {
+      applyFilters();
     });
   }
 
@@ -147,28 +171,11 @@
    */
   function initStatusFilter() {
     const filterSelect = document.getElementById('statusFilter');
-    const tableBody = document.getElementById('deliveriesTableBody');
     
-    if (!filterSelect || !tableBody) return;
+    if (!filterSelect) return;
 
-    filterSelect.addEventListener('change', function(e) {
-      const filterValue = e.target.value.toLowerCase();
-      const rows = tableBody.querySelectorAll('tr');
-
-      rows.forEach(function(row) {
-        if (filterValue === 'all') {
-          row.style.display = '';
-        } else {
-          const statusBadge = row.querySelector('.status-badge');
-          if (statusBadge) {
-            const status = statusBadge.classList.contains(filterValue);
-            row.style.display = status ? '' : 'none';
-          }
-        }
-      });
-
-      // Update visible count
-      updateVisibleCount();
+    filterSelect.addEventListener('change', function() {
+      applyFilters();
     });
   }
 
@@ -240,6 +247,7 @@
         if (overlay) {
           overlay.classList.remove('active');
         }
+        toggleBtn.setAttribute('aria-expanded', 'false');
       }
     });
   }
