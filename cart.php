@@ -116,17 +116,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $cart_query = "
     SELECT 
         c.cart_id,
-        c.product_id,
+        c.variant_id,
         c.quantity,
+        pv.product_id,
         p.name,
-        p.price,
-        p.stock,
+        pv.price,
+        pv.stock,
         b.brand_name,
-        pi.image_url
+        co.color_name,
+        sz.size_name,
+        pci.image_url
     FROM cart c
-    LEFT JOIN product p ON c.product_id = p.product_id
-    LEFT JOIN brand b ON p.brand_id = b.brand_id
-    LEFT JOIN product_image pi ON p.product_id = pi.product_id AND pi.sort_order = 1
+    INNER JOIN product_variant pv ON c.variant_id = pv.variant_id
+    INNER JOIN product p ON pv.product_id = p.product_id
+    INNER JOIN brand b ON p.brand_id = b.brand_id
+    INNER JOIN color co ON pv.color_id = co.color_id
+    INNER JOIN size sz ON pv.size_id = sz.size_id
+    LEFT JOIN product_color_image pci ON pv.product_id = pci.product_id AND pv.color_id = pci.color_id AND pci.sort_order = 1
     WHERE c.customer_id = ?
     ORDER BY c.updated_at DESC
 ";
@@ -154,424 +160,10 @@ $stmt->close();
     <title>Shopping Cart - ShoeTakels</title>
     <link rel="icon" type="image/x-icon" href="upload/picture/logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="asset/style/index.css">
+    <link rel="stylesheet" href="asset/style/cart.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
 
-        :root {
-            --primary: #1a1a1a;
-            --accent: #d4a574;
-            --light: #f5f5f5;
-            --white: #ffffff;
-            --text: #333333;
-            --text-light: #666666;
-            --success: #10b981;
-            --error: #ef4444;
-            --border: #e5e7eb;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
-            line-height: 1.6;
-            color: var(--text);
-            background-color: var(--light);
-        }
-
-        nav {
-            background: var(--white);
-            padding: 1rem 3rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 2rem;
-        }
-
-        nav .logo a {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-        }
-
-        nav .nav-back {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        nav a {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s;
-        }
-
-        nav a:hover {
-            color: var(--primary);
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 3rem;
-        }
-
-        .page-header h1 {
-            font-size: 2.5rem;
-            color: var(--primary);
-        }
-
-        .breadcrumb {
-            color: var(--text-light);
-            font-size: 0.95rem;
-        }
-
-        .breadcrumb a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
-
-        .cart-wrapper {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 2rem;
-        }
-
-        .cart-items-section {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-
-        .cart-item {
-            display: grid;
-            grid-template-columns: 120px 1fr 120px;
-            gap: 1.5rem;
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
-            align-items: center;
-            transition: background 0.2s;
-        }
-
-        .cart-item:last-child {
-            border-bottom: none;
-        }
-
-        .cart-item:hover {
-            background: var(--light);
-            border-radius: 8px;
-        }
-
-        .cart-item-image {
-            width: 120px;
-            height: 120px;
-            border-radius: 8px;
-            overflow: hidden;
-            background: var(--light);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .cart-item-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .cart-item-details {
-            flex: 1;
-        }
-
-        .cart-item-name {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 0.25rem;
-        }
-
-        .cart-item-brand {
-            font-size: 0.9rem;
-            color: var(--text-light);
-            margin-bottom: 0.5rem;
-        }
-
-        .cart-item-price {
-            font-size: 1.1rem;
-            color: var(--accent);
-            font-weight: 700;
-        }
-
-        .quantity-controls {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 0.25rem;
-            width: fit-content;
-            background: var(--white);
-        }
-
-        .quantity-btn {
-            background: none;
-            border: none;
-            width: 32px;
-            height: 32px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--primary);
-            font-size: 1.1rem;
-            transition: background 0.2s;
-            border-radius: 4px;
-        }
-
-        .quantity-btn:hover {
-            background: var(--light);
-        }
-
-        .quantity-input {
-            width: 45px;
-            border: none;
-            text-align: center;
-            font-size: 1rem;
-            font-weight: 600;
-            background: none;
-            color: var(--primary);
-        }
-
-        .quantity-input:focus {
-            outline: none;
-        }
-
-        .cart-item-total {
-            text-align: right;
-        }
-
-        .item-total-label {
-            font-size: 0.85rem;
-            color: var(--text-light);
-            margin-bottom: 0.25rem;
-        }
-
-        .item-total-price {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--accent);
-        }
-
-        .remove-btn {
-            background: none;
-            border: none;
-            color: var(--error);
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 0.5rem;
-            transition: transform 0.2s;
-        }
-
-        .remove-btn:hover {
-            transform: scale(1.1);
-        }
-
-        .empty-cart {
-            text-align: center;
-            padding: 4rem 2rem;
-            color: var(--text-light);
-        }
-
-        .empty-cart-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        .empty-cart h2 {
-            font-size: 1.5rem;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .empty-cart p {
-            margin-bottom: 2rem;
-        }
-
-        .btn-continue-shopping {
-            display: inline-block;
-            background: var(--primary);
-            color: var(--white);
-            padding: 0.75rem 2rem;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            text-decoration: none;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .btn-continue-shopping:hover {
-            background: var(--accent);
-        }
-
-        .order-summary {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            position: sticky;
-            top: 2rem;
-            height: fit-content;
-        }
-
-        .summary-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 1.5rem;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            color: var(--text-light);
-        }
-
-        .summary-row.total {
-            border-top: 2px solid var(--border);
-            padding-top: 1rem;
-            margin-top: 1rem;
-            color: var(--primary);
-            font-weight: 700;
-            font-size: 1.2rem;
-        }
-
-        .btn-checkout {
-            width: 100%;
-            background: var(--accent);
-            color: var(--primary);
-            padding: 1rem;
-            border: none;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.2s;
-            margin-top: 1.5rem;
-        }
-
-        .btn-checkout:hover {
-            background: #c29460;
-            transform: translateY(-2px);
-        }
-
-        .btn-checkout:active {
-            transform: translateY(0);
-        }
-
-        .btn-checkout.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .promos {
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--border);
-        }
-
-        .promos-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 0.75rem;
-        }
-
-        .promo-input-group {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .promo-input {
-            flex: 1;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
-
-        .promo-btn {
-            background: var(--primary);
-            color: var(--white);
-            border: none;
-            padding: 0.75rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.3s;
-        }
-
-        .promo-btn:hover {
-            background: var(--accent);
-        }
-
-        @media (max-width: 768px) {
-            nav {
-                padding: 1rem 1.5rem;
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .page-header {
-                flex-direction: column;
-                text-align: center;
-            }
-
-            .cart-wrapper {
-                grid-template-columns: 1fr;
-            }
-
-            .order-summary {
-                position: static;
-            }
-
-            .cart-item {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            .cart-item-image {
-                width: 100%;
-                height: 200px;
-            }
-
-            .cart-item-total {
-                text-align: left;
-            }
-
-            .quantity-controls {
-                width: 100%;
-                justify-content: space-around;
-            }
-        }
     </style>
 </head>
 <body>
@@ -591,7 +183,13 @@ $stmt->close();
                 <p class="breadcrumb"><a href="user-interface.php">Home</a> / Cart</p>
             </div>
             <div class="breadcrumb">
-                <span id="cart-count"><?php echo count($cart_items); ?></span> item(s) in cart
+                <?php
+                $total_quantity = 0;
+                foreach ($cart_items as $item) {
+                    $total_quantity += (int)$item['quantity'];
+                }
+                ?>
+                <span id="cart-count"><?php echo $total_quantity; ?></span> item(s) in cart
             </div>
         </div>
 
@@ -605,16 +203,28 @@ $stmt->close();
                         <a href="user-interface.php" class="btn-continue-shopping">Continue Shopping</a>
                     </div>
                 <?php else: ?>
+                    <form id="cart-form">
                     <?php foreach ($cart_items as $item): ?>
-                        <div class="cart-item" data-product-id="<?php echo $item['product_id']; ?>">
-                            <div class="cart-item-image">
-                                <img src="<?php echo htmlspecialchars($item['image_url'] ?? 'upload/product-image/placeholder.png', ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($item['name'], ENT_QUOTES, 'UTF-8'); ?>">
+                        <div class="cart-item" data-variant-id="<?php echo $item['variant_id']; ?>" style="position:relative; background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.04); margin-bottom:18px; display:flex; align-items:stretch; min-height:140px;">
+                            <div style="display:flex; flex-direction:column; align-items:flex-start; justify-content:flex-start; min-width:48px;">
+                                <input type="checkbox" class="cart-item-checkbox" name="selected_items[]" value="<?php echo $item['variant_id']; ?>" checked style="margin-top:18px; margin-left:10px; width:22px; height:22px; accent-color:#d4a574; box-shadow:0 1px 4px rgba(0,0,0,0.08);">
                             </div>
-                            <div class="cart-item-details">
-                                <div class="cart-item-name"><?php echo htmlspecialchars($item['name'], ENT_QUOTES, 'UTF-8'); ?></div>
-                                <div class="cart-item-brand"><?php echo htmlspecialchars($item['brand_name'] ?? 'Unknown Brand', ENT_QUOTES, 'UTF-8'); ?></div>
-                                <div class="cart-item-price">₱<?php echo number_format($item['price'], 2); ?></div>
-                                <div style="margin-top: 0.75rem;">
+                            <div class="cart-item-image" style="margin:0 18px 0 0; min-width:120px; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
+                                <img src="<?php echo htmlspecialchars($item['image_url'] ?? 'upload/product-image/placeholder.png', ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($item['name'], ENT_QUOTES, 'UTF-8'); ?>" style="border-radius:8px; border:1px solid #eee; background:#fafafa; width:100%; height:100%; object-fit:cover;">
+                            </div>
+                            <div class="cart-item-details" style="flex:1; padding-left:0; display:flex; flex-direction:column; justify-content:center; min-width:0;">
+                                <div class="cart-item-name" style="font-size:1.15rem; font-weight:700; color:#1a1a1a; margin-bottom:2px; letter-spacing:0.01em; line-height:1.2; word-break:break-word; white-space:normal; overflow-wrap:break-word;">
+                                    <?php echo htmlspecialchars($item['name'], ENT_QUOTES, 'UTF-8'); ?>
+                                </div>
+                                <div class="cart-item-brand" style="font-size:0.97rem; color:#b08b4f; margin-bottom:4px; font-weight:600;">
+                                    <?php echo htmlspecialchars($item['brand_name'] ?? 'Unknown Brand', ENT_QUOTES, 'UTF-8'); ?>
+                                </div>
+                                <div class="cart-item-price" style="font-size:1.1rem; color:#d4a574; font-weight:700; margin-bottom:2px;">₱<?php echo number_format($item['price'], 2); ?></div>
+                                <div style="display:flex; flex-wrap:wrap; gap:10px 18px;">
+                                    <div class="cart-item-color" style="font-size:0.97rem; color:#555;">Color: <span style="font-weight:600; color:#222;"><?php echo htmlspecialchars($item['color_name'], ENT_QUOTES, 'UTF-8'); ?></span></div>
+                                    <div class="cart-item-size" style="font-size:0.97rem; color:#555;">Size: <span style="font-weight:600; color:#222;"><?php echo htmlspecialchars($item['size_name'], ENT_QUOTES, 'UTF-8'); ?></span></div>
+                                </div>
+                                <div style="margin-top: 0.85rem;">
                                     <div class="quantity-controls">
                                         <button class="quantity-btn qty-decrease" aria-label="Decrease quantity">−</button>
                                         <input type="number" class="quantity-input" value="<?php echo $item['quantity']; ?>" min="1" max="999">
@@ -622,13 +232,14 @@ $stmt->close();
                                     </div>
                                 </div>
                             </div>
-                            <div class="cart-item-total">
-                                <div class="item-total-label">Subtotal</div>
-                                <div class="item-total-price item-price">₱<?php echo number_format($item['price'] * $item['quantity'], 2); ?></div>
-                                <button class="remove-btn" aria-label="Remove item" title="Remove from cart">×</button>
+                            <div class="cart-item-total" style="text-align:right; display:flex; flex-direction:column; justify-content:center; align-items:flex-end; min-width:120px;">
+                                <div class="item-total-label" style="font-size:0.9rem; color:#b08b4f; margin-bottom:0.25rem;">Subtotal</div>
+                                <div class="item-total-price item-price" style="font-size:1.25rem; font-weight:700; color:#d4a574;">₱<?php echo number_format($item['price'] * $item['quantity'], 2); ?></div>
+                                <button class="remove-btn" aria-label="Remove item" title="Remove from cart" style="margin-top:10px;">×</button>
                             </div>
                         </div>
                     <?php endforeach; ?>
+                    </form>
                 <?php endif; ?>
             </div>
 
@@ -651,7 +262,7 @@ $stmt->close();
                     <span id="total-price">₱<?php echo number_format($cart_total * 1.12, 2); ?></span>
                 </div>
 
-                <button class="btn-checkout <?php echo empty($cart_items) ? 'disabled' : ''; ?>" <?php echo empty($cart_items) ? 'disabled' : ''; ?>>Proceed to Checkout</button>
+                <button type="button" id="btn-checkout" class="btn-checkout <?php echo empty($cart_items) ? 'disabled' : ''; ?>" <?php echo empty($cart_items) ? 'disabled' : ''; ?>>Proceed to Checkout</button>
 
                 <div class="promos">
                     <div class="promos-title">Have a promo code?</div>
@@ -666,7 +277,7 @@ $stmt->close();
 
     <script>
         document.querySelectorAll('.cart-item').forEach(item => {
-            const productId = item.dataset.productId;
+            const variantId = item.dataset.variantId;
             const qtyInput = item.querySelector('.quantity-input');
             const qtyDecrease = item.querySelector('.qty-decrease');
             const qtyIncrease = item.querySelector('.qty-increase');
@@ -679,7 +290,7 @@ $stmt->close();
                 fetch('cart.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=update&product_id=${productId}&quantity=${newQty}`
+                    body: `action=update&product_id=${variantId}&quantity=${newQty}`
                 })
                 .then(r => r.json())
                 .then(data => {
@@ -695,7 +306,7 @@ $stmt->close();
                 fetch('cart.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=remove&product_id=${productId}`
+                    body: `action=remove&product_id=${variantId}`
                 })
                 .then(r => r.json())
                 .then(data => {
@@ -731,10 +342,25 @@ $stmt->close();
             document.getElementById('total-price').textContent = '₱' + total.toFixed(2);
         }
 
-        document.querySelector('.btn-checkout').addEventListener('click', function() {
-            if (!this.disabled) {
-                window.location.href = 'checkout.php';
+        document.getElementById('btn-checkout').addEventListener('click', function() {
+            if (this.disabled) return;
+            const checked = Array.from(document.querySelectorAll('.cart-item-checkbox:checked')).map(cb => cb.value);
+            if (checked.length === 0) {
+                alert('Please select at least one item to check out.');
+                return;
             }
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'checkout.php';
+            checked.forEach(pid => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'selected_items[]';
+                input.value = pid;
+                form.appendChild(input);
+            });
+            document.body.appendChild(form);
+            form.submit();
         });
     </script>
 </body>

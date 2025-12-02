@@ -37,20 +37,29 @@ if (!$product) {
     die("Product not found.");
 }
 
-// Fetch images
+// This now correctly fetches all 5 images per color
 $images_stmt = $conn->prepare("
-    SELECT image_url
-    FROM product_image
-    WHERE product_id = ?
-    ORDER BY image_id ASC
+    SELECT pci.image_url, c.color_name
+    FROM product_color_image pci
+    LEFT JOIN color c ON pci.color_id = c.color_id
+    WHERE pci.product_id = ?
+    ORDER BY c.color_name ASC, pci.color_id ASC
 ");
 $images_stmt->bind_param("i", $product_id);
 $images_stmt->execute();
 $images_result = $images_stmt->get_result();
 
 $images = [];
+$colorToImages = []; // Store all images per color (up to 5 per color)
 while ($row = $images_result->fetch_assoc()) {
     $images[] = $row['image_url'];
+    
+    if (!empty($row['color_name'])) {
+        if (!isset($colorToImages[$row['color_name']])) {
+            $colorToImages[$row['color_name']] = [];
+        }
+        $colorToImages[$row['color_name']][] = $row['image_url'];
+    }
 }
 
 // Fetch variants
@@ -84,6 +93,22 @@ foreach ($variants as $v) {
     $variantMap[$key] = $v;
 }
 
+// Count how many of this product are in the cart for this user
+$cart_count = 0;
+if (isset($_SESSION['customer_id'])) {
+    $cart_conn = new mysqli($servername, $username, $password, $database);
+    if (!$cart_conn->connect_error) {
+        $cart_stmt = $cart_conn->prepare("SELECT SUM(c.quantity) as total FROM cart c INNER JOIN product_variant v ON c.variant_id = v.variant_id WHERE c.customer_id = ? AND v.product_id = ?");
+        $cart_stmt->bind_param('ii', $_SESSION['customer_id'], $product_id);
+        $cart_stmt->execute();
+        $cart_result = $cart_stmt->get_result();
+        if ($cart_result && ($row = $cart_result->fetch_assoc())) {
+            $cart_count = (int)($row['total'] ?? 0);
+        }
+        $cart_stmt->close();
+    }
+    $cart_conn->close();
+}
 $conn->close();
 ?>
 <!DOCTYPE html>
@@ -209,6 +234,11 @@ $conn->close();
             display: flex;
             flex-direction: column;
             align-items: center;
+            transition: opacity 0.3s ease;
+        }
+
+        .color-option-wrapper.hidden {
+            display: none;
         }
 
         .variant-info {
@@ -299,7 +329,26 @@ $conn->close();
         <div class="nav-right">
             <div class="cart-icon" id="cartIcon">
                 🛒
-                <span class="cart-badge" id="cartBadge" style="display:none;">0</span>
+                <?php
+                $cart_product_count = 0;
+                if (isset($_SESSION['customer_id'])) {
+                    $cart_conn = new mysqli($servername, $username, $password, $database);
+                    if (!$cart_conn->connect_error) {
+                        $cart_stmt = $cart_conn->prepare("SELECT SUM(c.quantity) as total FROM cart c INNER JOIN product_variant v ON c.variant_id = v.variant_id WHERE c.customer_id = ? AND v.product_id = ?");
+                        $cart_stmt->bind_param('ii', $_SESSION['customer_id'], $product_id);
+                        $cart_stmt->execute();
+                        $cart_result = $cart_stmt->get_result();
+                        if ($cart_result && ($row = $cart_result->fetch_assoc())) {
+                            $cart_product_count = (int)($row['total'] ?? 0);
+                        }
+                        $cart_stmt->close();
+                    }
+                    $cart_conn->close();
+                }
+                if ($cart_product_count > 0) {
+                    echo '<span class="cart-badge" id="cartBadge">' . $cart_product_count . '</span>';
+                }
+                ?>
             </div>
         </div>
     </nav>
@@ -310,15 +359,19 @@ $conn->close();
 
             <!-- GALLERY -->
             <div class="product-gallery" style="flex:1; max-width:520px;">
+                <?php
+                    $firstColor = isset($_GET['color']) && isset($colorToImages[$_GET['color']]) ? $_GET['color'] : array_key_first($colorToImages);
+                    $defaultImages = $firstColor ? $colorToImages[$firstColor] : [];
+                ?>
                 <div class="main-image" style="border:1px solid #eee; padding:12px;">
                     <img id="mainImage"
-                         src="<?php echo htmlspecialchars($images[0] ?? 'upload/product-image/placeholder.png'); ?>"
+                         src="<?php echo htmlspecialchars($defaultImages[0] ?? 'upload/product-image/placeholder.png'); ?>"
                          alt="<?php echo htmlspecialchars($product['name']); ?>"
                          style="width:100%; height:auto;">
                 </div>
 
-                <div class="thumbnail-list" style="margin-top:12px;">
-                    <?php foreach ($images as $index => $img): ?>
+                <div class="thumbnail-list" id="thumbnailList" style="margin-top:12px;">
+                    <?php foreach ($defaultImages as $index => $img): ?>
                         <div class="thumbnail <?php echo $index === 0 ? 'active' : ''; ?>"
                              data-image="<?php echo htmlspecialchars($img); ?>">
                             <img src="<?php echo htmlspecialchars($img); ?>"
@@ -330,7 +383,13 @@ $conn->close();
 
             <!-- PRODUCT INFO -->
             <div class="product-info" style="flex:1;">
+
                 <h1><?php echo htmlspecialchars($product['name']); ?></h1>
+                <?php if ($cart_count > 0): ?>
+                    <div style="margin: 8px 0; color: #007bff; font-weight: 600;">
+                        You have added <?php echo $cart_count; ?> of this product to your cart.
+                    </div>
+                <?php endif; ?>
 
                 <div>
                     Brand: <strong><?php echo htmlspecialchars($product['brand_name'] ?? 'Unknown'); ?></strong>
@@ -396,8 +455,7 @@ $conn->close();
                             </div>
                         </div>
 
-                        <!-- VARIANT DETAILS -->
-                        <div class="variant-info" id="variantInfo">
+                      <div class="variant-info" id="variantInfo">
                             <div class="variant-price" id="variantPrice">₱0.00</div>
                             <div class="variant-stock" id="variantStock">Select size and color</div>
 
@@ -504,8 +562,12 @@ $conn->close();
     <!-- JAVASCRIPT -->
     <script>
         const variantMap = <?php echo json_encode($variantMap); ?>;
+        const colorToImages = <?php echo json_encode($colorToImages); ?>; // Changed to store all images per color
         let selectedSize = null;
         let selectedColor = null;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialColor = urlParams.get('color');
 
         function updateVariantInfo() {
             if (!selectedSize || !selectedColor) {
@@ -566,7 +628,6 @@ $conn->close();
             });
         });
 
-        // Color selector
         document.querySelectorAll('.color-btn').forEach(btn => {
             btn.addEventListener('click', function () {
                 selectedColor = this.dataset.color;
@@ -575,6 +636,36 @@ $conn->close();
                     .forEach(b => b.classList.remove('selected'));
 
                 this.classList.add('selected');
+
+                // Update thumbnails to only show selected color's images
+                const galleryImages = colorToImages[selectedColor] || [];
+                const mainImage = document.getElementById('mainImage');
+                const thumbnailList = document.getElementById('thumbnailList');
+
+                // Update main image
+                if (galleryImages.length > 0) {
+                    mainImage.src = galleryImages[0];
+                } else {
+                    mainImage.src = 'upload/product-image/placeholder.png';
+                }
+
+                // Update thumbnails to only show selected color's images
+                let thumbsHtml = '';
+                galleryImages.forEach((img, idx) => {
+                    thumbsHtml += `<div class=\"thumbnail ${idx === 0 ? 'active' : ''}\" data-image=\"${img}\">` +
+                        `<img src=\"${img}\" style=\"width:64px; height:64px; object-fit:cover; border-radius:4px;\">` +
+                        `</div>`;
+                });
+                thumbnailList.innerHTML = thumbsHtml;
+
+                // Add click event to new thumbnails
+                thumbnailList.querySelectorAll('.thumbnail').forEach(thumb => {
+                    thumb.addEventListener('click', function () {
+                        thumbnailList.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        mainImage.src = this.dataset.image;
+                    });
+                });
 
                 updateVariantInfo();
             });
@@ -636,6 +727,23 @@ $conn->close();
         // Mobile menu
         document.getElementById('menuToggle')?.addEventListener("click", function () {
             document.getElementById("navLinks").classList.toggle("show");
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (initialColor) {
+                const colorButton = document.querySelector(
+                    `.color-btn[data-color="${CSS.escape(initialColor)}"]`
+                );
+                if (colorButton && !colorButton.disabled) {
+                    colorButton.click();
+                    return;
+                }
+            }
+            
+            const firstColorButton = document.querySelector('.color-btn:not(:disabled)');
+            if (firstColorButton) {
+                firstColorButton.click();
+            }
         });
     </script>
 

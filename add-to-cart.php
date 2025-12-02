@@ -10,12 +10,13 @@ if (!isset($_SESSION['customer_id'])) {
     exit();
 }
 
-$product_id = isset($_POST['product_id']) ? (int)$_POST['product_id'] : 0;
+
+$variant_id = isset($_POST['variant_id']) ? (int)$_POST['variant_id'] : 0;
 $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
 
-if ($product_id <= 0) {
+if ($variant_id <= 0) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Invalid product ID']);
+    echo json_encode(['success' => false, 'message' => 'Invalid variant ID']);
     exit();
 }
 
@@ -25,60 +26,65 @@ if ($quantity <= 0) {
 
 $customer_id = (int)$_SESSION['customer_id'];
 
+
 $query = "
     SELECT 
-        s.product_id, 
-        s.name, 
-        s.Price, 
-        s.stock,
-        b.brand_name, 
-        si.image_url
-    FROM Product s
-    LEFT JOIN Brand b ON s.brand_id = b.brand_id
-    LEFT JOIN product_image si ON s.product_id = si.product_id AND si.sort_order = 1
-    WHERE s.product_id = ?
+        v.variant_id,
+        v.product_id,
+        v.stock,
+        v.price,
+        p.name,
+        b.brand_name,
+        c.color_name,
+        s.size_name,
+        v.image_url
+    FROM product_variant v
+    LEFT JOIN product p ON v.product_id = p.product_id
+    LEFT JOIN brand b ON p.brand_id = b.brand_id
+    LEFT JOIN color c ON v.color_id = c.color_id
+    LEFT JOIN size s ON v.size_id = s.size_id
+    WHERE v.variant_id = ?
     LIMIT 1
 ";
 
 $stmt = $conn->prepare($query);
-$stmt->bind_param('i', $product_id);
+$stmt->bind_param('i', $variant_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows === 0) {
     http_response_code(404);
-    echo json_encode(['success' => false, 'message' => 'Product not found']);
+    echo json_encode(['success' => false, 'message' => 'Variant not found']);
     exit();
 }
 
-$product = $result->fetch_assoc();
+$variant = $result->fetch_assoc();
 
-if ($product['stock'] < $$quantity) {
+if ($variant['stock'] < $quantity) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Not enough stock available. Stock: ' . $product['stock']]);
+    echo json_encode(['success' => false, 'message' => 'Not enough stock available. Stock: ' . $variant['stock']]);
     exit();
 }
 
-$check_query = "SELECT cart_id, quantity FROM cart WHERE customer_id = ? AND product_id = ?";
+
+$check_query = "SELECT cart_id, quantity FROM cart WHERE customer_id = ? AND variant_id = ?";
 $check_stmt = $conn->prepare($check_query);
-$check_stmt->bind_param('ii', $customer_id, $product_id);
+$check_stmt->bind_param('ii', $customer_id, $variant_id);
 $check_stmt->execute();
 $check_result = $check_stmt->get_result();
+
 
 if ($check_result->num_rows > 0) {
     $cart_item = $check_result->fetch_assoc();
     $new_quantity = $cart_item['quantity'] + $quantity;
-    
-    if ($new_quantity > $product['stock']) {
+    if ($new_quantity > $variant['stock']) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Not enough stock available for this quantity.']);
         exit();
     }
-    
     $update_query = "UPDATE cart SET quantity = ? WHERE cart_id = ?";
     $update_stmt = $conn->prepare($update_query);
     $update_stmt->bind_param('ii', $new_quantity, $cart_item['cart_id']);
-    
     if ($update_stmt->execute()) {
         $count_query = "SELECT SUM(quantity) as total FROM cart WHERE customer_id = ?";
         $count_stmt = $conn->prepare($count_query);
@@ -88,11 +94,10 @@ if ($check_result->num_rows > 0) {
         $count_row = $count_result->fetch_assoc();
         $cart_count = (int)($count_row['total'] ?? 0);
         $count_stmt->close();
-        
         echo json_encode([
             'success' => true,
-            'message' => $product['name'] . ' quantity updated in cart!',
-            'product_name' => $product['name'],
+            'message' => $variant['name'] . ' (' . $variant['color_name'] . ' / ' . $variant['size_name'] . ") quantity updated in cart!",
+            'product_name' => $variant['name'],
             'quantity' => $new_quantity,
             'cart_count' => $cart_count
         ]);
@@ -102,10 +107,9 @@ if ($check_result->num_rows > 0) {
     }
     $update_stmt->close();
 } else {
-    $insert_query = "INSERT INTO cart (customer_id, product_id, quantity) VALUES (?, ?, ?)";
+    $insert_query = "INSERT INTO cart (customer_id, variant_id, quantity) VALUES (?, ?, ?)";
     $insert_stmt = $conn->prepare($insert_query);
-    $insert_stmt->bind_param('iii', $customer_id, $product_id, $quantity);
-    
+    $insert_stmt->bind_param('iii', $customer_id, $variant_id, $quantity);
     if ($insert_stmt->execute()) {
         $count_query = "SELECT SUM(quantity) as total FROM cart WHERE customer_id = ?";
         $count_stmt = $conn->prepare($count_query);
@@ -115,11 +119,10 @@ if ($check_result->num_rows > 0) {
         $count_row = $count_result->fetch_assoc();
         $cart_count = (int)($count_row['total'] ?? 0);
         $count_stmt->close();
-        
         echo json_encode([
             'success' => true,
-            'message' => $product['name'] . ' added to cart!',
-            'product_name' => $product['name'],
+            'message' => $variant['name'] . ' (' . $variant['color_name'] . ' / ' . $variant['size_name'] . ") added to cart!",
+            'product_name' => $variant['name'],
             'quantity' => $quantity,
             'cart_count' => $cart_count
         ]);

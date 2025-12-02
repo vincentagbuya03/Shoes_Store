@@ -61,7 +61,6 @@ if (isset($_SESSION['cart'][$product_id])) {
     ];
 }
 
-// Calculate total items in cart
 $total_items = 0;
 foreach ($_SESSION['cart'] as $item) {
     $total_items += $item['quantity'];

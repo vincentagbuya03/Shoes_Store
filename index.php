@@ -23,7 +23,7 @@ session_start();
             <a href="index.php">ShoeTakels</a>
         </div>
         
-        <button class="menu-toggle" id="menu-toggle">☰</button>
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation" tabindex="0">☰</button>
         <ul class="nav-links" id="nav-links">
             <li><a href="12_12.php">12.12 Sale</a></li>
             <li><a href="index.php">Home</a></li>
@@ -172,7 +172,7 @@ session_start();
                     si.image_url
                 FROM Product s
                 LEFT JOIN Brand b ON s.brand_id = b.brand_id
-                LEFT JOIN product_image si ON s.product_id = si.product_id AND si.sort_order = 1
+                LEFT JOIN product_color_image si ON s.product_id = si.product_id AND si.sort_order = 1
                 ORDER BY s.created_at DESC
                 LIMIT 4
             ";
@@ -185,9 +185,7 @@ session_start();
                     $img = htmlspecialchars($img_path, ENT_QUOTES, 'UTF-8');
                     $name = htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8');
                     $brand = htmlspecialchars($product['brand_name'], ENT_QUOTES, 'UTF-8');
-
                     $pid = (int)$product['product_id'];
-                    
                     echo "
                     <div class='product-card'>
                         <div class='product-image'>
@@ -197,9 +195,7 @@ session_start();
                         </div>
                         <h3 class='product-name'><a href='product.php?id={$pid}'>$name</a></h3>
                         <div class='product-brand'>$brand</div>
-
-                        <!-- Added data-product-id and onclick handler for AJAX -->
-                        <button class='btn-primary add-to-cart-btn' data-product-id='{$pid}' data-product-name='{$name}' onclick='addToCartAjax(event, this)' style='width: 100%;'>Add to Cart</button>
+                        <button class='btn-primary add-to-cart-btn' onclick=\"window.location.href='login.php'\" style='width: 100%;'>Add to Cart</button>
                     </div>
                     ";
                 }
@@ -269,7 +265,7 @@ session_start();
                     si.image_url
                 FROM Product s
                 LEFT JOIN Brand b ON s.brand_id = b.brand_id
-                LEFT JOIN product_image si ON s.product_id = si.product_id AND si.sort_order = 1
+                LEFT JOIN product_color_image si ON s.product_id = si.product_id AND si.sort_order = 1
                 ORDER BY s.created_at ASC
                 LIMIT 4
             ";
@@ -374,6 +370,23 @@ session_start();
     </footer>
 
     <script>
+        // Responsive nav toggle for zoom/small screens
+        function handleNavToggle() {
+            const menuToggle = document.getElementById('menu-toggle');
+            const navLinks = document.getElementById('nav-links');
+            if (menuToggle && navLinks) {
+                menuToggle.addEventListener('click', () => {
+                    navLinks.classList.toggle('show');
+                });
+                // Also allow keyboard toggle for accessibility
+                menuToggle.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        navLinks.classList.toggle('show');
+                    }
+                });
+            }
+        }
+        handleNavToggle();
         const cartIcon = document.getElementById('cart-icon');
         const toastContainer = document.getElementById('toast-container');
         function showToast(title, message, isError = false) {
