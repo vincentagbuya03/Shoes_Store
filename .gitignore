@@ -1,0 +1,4 @@
+
+config/gemini.local.php
+config/service-account.json
+.env

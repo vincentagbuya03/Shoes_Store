@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 29, 2025 at 03:28 AM
+-- Generation Time: Dec 01, 2025 at 02:21 AM
 -- Server version: 8.4.3
 -- PHP Version: 8.3.26
 
@@ -81,6 +81,13 @@ CREATE TABLE `cart` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+--
+-- Dumping data for table `cart`
+--
+
+INSERT INTO `cart` (`cart_id`, `customer_id`, `variant_id`, `quantity`, `added_at`, `updated_at`) VALUES
+(18, 2, 10, 1, '2025-11-29 15:19:51', '2025-11-29 15:19:51');
+
 -- --------------------------------------------------------
 
 --
@@ -126,7 +133,7 @@ CREATE TABLE `customer` (
 
 INSERT INTO `customer` (`customer_id`, `name`, `email`, `phone`, `address`, `password`, `created_at`) VALUES
 (1, 'Glend Allyzza Loresco', 'glend143@gmail.com', '09122354762', '13 Barangay St. BRGY. Sitio, Di Mahanap City, Biringan', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', '2025-11-14 15:12:45'),
-(2, 'Nick Vincent Delos Santos Agbuya', '23sc4114_ms@psu.edu.ph', '09122354762', '13 Turac San Carlos City Pangasinan', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', '2025-11-14 15:28:42');
+(2, 'Nick Vincent Delos Santos Agbuya', '23sc4114_ms@psu.edu.ph', '09122354762', '13 Balon Kalds Turac San Carlos City Pangasinan', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', '2025-11-14 15:28:42');
 
 -- --------------------------------------------------------
 
@@ -184,7 +191,8 @@ CREATE TABLE `orders` (
   `rider_id` int DEFAULT NULL,
   `total_amount` decimal(10,2) DEFAULT NULL,
   `payment_method` enum('COD','Card','Gcash') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'COD',
-  `status` enum('pending','confirmed','delivering','completed','cancelled') DEFAULT 'pending',
+  `status` enum('pending','confirmed','delivering','completed','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'pending',
+  `delivery_proof` varchar(255) DEFAULT NULL,
   `order_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `delivery_lat` decimal(10,7) DEFAULT NULL,
   `delivery_lng` decimal(10,7) DEFAULT NULL,
@@ -197,9 +205,12 @@ CREATE TABLE `orders` (
 -- Dumping data for table `orders`
 --
 
-INSERT INTO `orders` (`order_id`, `customer_id`, `rider_id`, `total_amount`, `payment_method`, `status`, `order_date`, `delivery_lat`, `delivery_lng`, `payment_meta`, `payment_proof`, `delivery_address`) VALUES
-(4, 2, NULL, 7200.00, 'Gcash', 'pending', '2025-11-27 14:47:47', NULL, NULL, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_4_1764254867.png', '13 Turac San Carlos City Pangasinan'),
-(5, 2, 2, 7200.00, 'Gcash', 'delivering', '2025-11-27 14:48:23', 15.9050560, 120.3676940, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_5_1764254903.png', '13 Turac San Carlos City Pangasinan');
+INSERT INTO `orders` (`order_id`, `customer_id`, `rider_id`, `total_amount`, `payment_method`, `status`, `delivery_proof`, `order_date`, `delivery_lat`, `delivery_lng`, `payment_meta`, `payment_proof`, `delivery_address`) VALUES
+(4, 2, NULL, 7200.00, 'Gcash', 'pending', NULL, '2025-11-27 14:47:47', NULL, NULL, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_4_1764254867.png', '13 Turac San Carlos City Pangasinan'),
+(5, 2, 2, 7200.00, 'Gcash', 'completed', 'upload\\delivery-proof\\proof_5_1764424292_9ec8486a.png', '2025-11-27 14:48:23', 15.9050560, 120.3676940, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_5_1764254903.png', '13 Turac San Carlos City Pangasinan'),
+(6, 2, 2, 7200.00, 'Gcash', 'completed', 'upload/delivery-proof/proof_6_1764428046_b2a1ad80.png', '2025-11-29 14:04:36', NULL, NULL, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_4_1764254867.png', '13 Turac San Carlos City Pangasinan'),
+(7, 2, NULL, 1000.00, 'Gcash', 'pending', NULL, '2025-11-29 14:13:18', NULL, NULL, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_7_1764425598.png', '13 Turac San Carlos City Pangasinan'),
+(8, 2, 2, 6800.00, 'Gcash', 'delivering', NULL, '2025-11-29 15:19:24', 15.9050170, 120.3677730, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_8_1764429564.png', '13 Turac San Carlos City Pangasinan');
 
 -- --------------------------------------------------------
 
@@ -222,26 +233,10 @@ CREATE TABLE `order_items` (
 
 INSERT INTO `order_items` (`id`, `order_id`, `variant_id`, `product_id`, `price`, `quantity`) VALUES
 (2, 4, 8, 7, 7200.00, 1),
-(3, 5, 8, 7, 7200.00, 1);
-
--- --------------------------------------------------------
-
---
--- Table structure for table `payments`
---
-
-CREATE TABLE `payments` (
-  `payment_id` int NOT NULL,
-  `order_id` int NOT NULL,
-  `amount` decimal(10,2) NOT NULL,
-  `currency` varchar(8) DEFAULT 'PHP',
-  `provider` varchar(50) DEFAULT NULL,
-  `provider_transaction_id` varchar(255) DEFAULT NULL,
-  `status` enum('pending','succeeded','failed','refunded') DEFAULT 'pending',
-  `metadata` json DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+(3, 5, 8, 7, 7200.00, 1),
+(4, 6, 8, 7, 7200.00, 1),
+(5, 7, 1, 1, 1000.00, 1),
+(6, 8, 10, 8, 6800.00, 1);
 
 -- --------------------------------------------------------
 
@@ -375,16 +370,18 @@ CREATE TABLE `rider` (
   `phone` varchar(20) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `status` enum('available','busy','inactive') DEFAULT 'available',
-  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `current_lat` decimal(11,8) DEFAULT NULL,
+  `current_lng` decimal(11,8) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `rider`
 --
 
-INSERT INTO `rider` (`rider_id`, `name`, `email`, `phone`, `password`, `status`, `created_at`) VALUES
-(1, 'Rider In Tandem', 'rider@gmail.com', '09122354762', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', 'busy', '2025-11-25 13:55:40'),
-(2, 'Vincent Agbuya', 'vince@gmail.com', '09122354762', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', 'busy', '2025-11-25 16:28:34');
+INSERT INTO `rider` (`rider_id`, `name`, `email`, `phone`, `password`, `status`, `created_at`, `current_lat`, `current_lng`) VALUES
+(1, 'Rider In Tandem', 'rider@gmail.com', '09122354762', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', 'inactive', '2025-11-25 13:55:40', NULL, NULL),
+(2, 'Vincent Agbuya', 'vince@gmail.com', '09122354762', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', 'busy', '2025-11-25 16:28:34', 15.90481200, 120.36786650);
 
 -- --------------------------------------------------------
 
@@ -393,9 +390,9 @@ INSERT INTO `rider` (`rider_id`, `name`, `email`, `phone`, `password`, `status`,
 -- (See below for the actual view)
 --
 CREATE TABLE `rider_avg_rating` (
-`rider_id` int
-,`avg_rating` decimal(7,4)
+`avg_rating` decimal(7,4)
 ,`rating_count` bigint
+,`rider_id` int
 );
 
 -- --------------------------------------------------------
@@ -413,6 +410,13 @@ CREATE TABLE `rider_location_history` (
   `accuracy` int DEFAULT NULL,
   `recorded_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `rider_location_history`
+--
+
+
+
 
 -- --------------------------------------------------------
 
@@ -586,13 +590,6 @@ ALTER TABLE `order_items`
   ADD KEY `order_id` (`order_id`);
 
 --
--- Indexes for table `payments`
---
-ALTER TABLE `payments`
-  ADD PRIMARY KEY (`payment_id`),
-  ADD KEY `order_id` (`order_id`);
-
---
 -- Indexes for table `product`
 --
 ALTER TABLE `product`
@@ -681,7 +678,7 @@ ALTER TABLE `brand`
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `cart_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `cart_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `color`
@@ -711,19 +708,13 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `order_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `order_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- AUTO_INCREMENT for table `payments`
---
-ALTER TABLE `payments`
-  MODIFY `payment_id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `product`
@@ -753,7 +744,7 @@ ALTER TABLE `rider`
 -- AUTO_INCREMENT for table `rider_location_history`
 --
 ALTER TABLE `rider_location_history`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=844;
 
 --
 -- AUTO_INCREMENT for table `rider_rating`
@@ -811,12 +802,6 @@ ALTER TABLE `orders`
 --
 ALTER TABLE `order_items`
   ADD CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `payments`
---
-ALTER TABLE `payments`
-  ADD CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `product`

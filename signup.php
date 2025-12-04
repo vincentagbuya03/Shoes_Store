@@ -1,12 +1,13 @@
 <?php
 require_once 'db_connection.php';
+require_once 'inc/store_settings.php';
 
 $email = '';
 $error = '';
 $success = '';
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $email = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
     $confirm_password = trim($_POST['confirm_password'] ?? '');
@@ -71,73 +72,233 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - ShoeTakels</title>
+    <title>Sign Up - <?php echo htmlspecialchars($store_settings['store_name']); ?></title>
     <link rel="icon" type="image/x-icon" href="upload/picture/logo.png">
-    <link rel="stylesheet" href="asset/style/index.css">
-    <link rel="stylesheet" href="asset/style/login.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <?php echo getStoreThemeCSS(); ?>
     <style>
-        
-        :root {
-            --primary-color: #000;
-            --accent-color: #d4af37;
-            --background-light: #f5f5f5;
-            --border-color: #ddd;
-            --error-color: #dc3545;
-            --success-color: #28a745;
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        :root {
+            --primary: #1a1a1a;
+            --accent: #d4a574;
+            --accent-dark: #b8956a;
+            --white: #ffffff;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --error: #ef4444;
+            --success: #10b981;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f5f5f5 0%, #e9e9e9 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--gray-100);
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
         }
 
-        main {
-            flex: 1;
+        .signup-wrapper {
             display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* Left Side - Branding */
+        .signup-branding {
+            flex: 0 0 45%;
+            background: linear-gradient(135deg, var(--primary) 0%, #2d2d2d 50%, var(--primary) 100%);
+            display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 2rem;
+            padding: 3rem;
+            position: relative;
+            overflow: hidden;
         }
 
-        .login-container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 550px; /* Increased width for two-column layout */
-            padding: 2.5rem;
+        .signup-branding::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(212, 165, 116, 0.1) 0%, transparent 50%);
+            animation: pulse 15s ease-in-out infinite;
         }
 
-        .login-header {
+        .signup-branding::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            right: -20%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(circle, rgba(212, 165, 116, 0.08) 0%, transparent 60%);
+            animation: pulse 20s ease-in-out infinite reverse;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .branding-content {
+            position: relative;
+            z-index: 1;
             text-align: center;
+            color: var(--white);
+            max-width: 400px;
+        }
+
+        .branding-logo {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--white) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .branding-tagline {
+            font-size: 1.25rem;
+            font-weight: 300;
+            margin-bottom: 2.5rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .branding-benefits {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-align: left;
+            padding: 1rem 1.25rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .benefit-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .benefit-icon {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: var(--white);
+            flex-shrink: 0;
+        }
+
+        .benefit-text h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .benefit-text p {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        /* Right Side - Form */
+        .signup-form-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 3rem;
+            background: var(--white);
+            overflow-y: auto;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .form-header {
             margin-bottom: 2rem;
         }
 
-        .login-header h1 {
-            font-size: 2rem;
-            color: var(--primary-color);
+        .form-header .mobile-logo {
+            display: none;
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            text-decoration: none;
+        }
+
+        .form-header h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: var(--gray-900);
             margin-bottom: 0.5rem;
         }
 
-        .login-header p {
-            color: #666;
-            font-size: 0.95rem;
+        .form-header p {
+            color: var(--gray-500);
+            font-size: 1rem;
+        }
+
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert-error {
+            background: #fef2f2;
+            color: var(--error);
+            border: 1px solid #fecaca;
+        }
+
+        .alert-error::before {
+            content: '\f06a';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
         }
 
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
-            margin-bottom: 1rem;
         }
 
         .form-row.full {
@@ -145,84 +306,155 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.25rem;
         }
 
-        label {
+        .form-group label {
             display: block;
+            font-size: 0.875rem;
             font-weight: 600;
-            color: var(--primary-color);
+            color: var(--gray-700);
             margin-bottom: 0.5rem;
-            font-size: 0.95rem;
         }
 
-        input[type="email"],
-        input[type="password"],
-        input[type="text"] {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 2px solid var(--border-color);
-            border-radius: 6px;
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i.input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-400);
             font-size: 1rem;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            transition: color 0.3s ease;
+            pointer-events: none;
         }
 
-        input[type="email"]:focus,
-        input[type="password"]:focus,
-        input[type="text"]:focus {
-            outline: none;
-            border-color: var(--accent-color);
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
-        }
-
-        .alert {
-            padding: 0.75rem 1rem;
-            border-radius: 6px;
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-        }
-
-        .alert-error {
-            background-color: #f8d7da;
-            color: var(--error-color);
-            border: 1px solid #f5c6cb;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            color: var(--success-color);
-            border: 1px solid #c3e6cb;
-        }
-
-        .btn-primary {
+        .form-group input {
             width: 100%;
-            padding: 0.75rem;
-            background-color: var(--primary-color);
-            color: white;
+            padding: 0.875rem 1rem 0.875rem 2.75rem;
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            font-size: 1rem;
+            color: var(--gray-900);
+            background: var(--white);
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(212, 165, 116, 0.15);
+        }
+
+        .form-group input:focus + i.input-icon,
+        .input-wrapper:focus-within i.input-icon {
+            color: var(--accent);
+        }
+
+        .form-group input::placeholder {
+            color: var(--gray-400);
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
             border: none;
-            border-radius: 6px;
+            color: var(--gray-400);
+            cursor: pointer;
+            padding: 0.25rem;
+            transition: color 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: var(--gray-600);
+        }
+
+        .password-hint {
+            font-size: 0.75rem;
+            color: var(--gray-400);
+            margin-top: 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .password-hint i {
+            font-size: 0.7rem;
+        }
+
+        .terms-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .terms-checkbox input {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .terms-checkbox label {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            line-height: 1.5;
+            cursor: pointer;
+        }
+
+        .terms-checkbox a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .terms-checkbox a:hover {
+            color: var(--accent-dark);
+            text-decoration: underline;
+        }
+
+        .btn-signup {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--gray-800) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-            margin-top: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
 
-        .btn-primary:hover {
-            background-color: #333;
+        .btn-signup:hover {
             transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
         }
 
-        .btn-primary:active {
+        .btn-signup:active {
             transform: translateY(0);
         }
 
         .divider {
             display: flex;
             align-items: center;
-            margin: 1.5rem 0;
-            color: #999;
-            font-size: 0.9rem;
+            margin: 1.75rem 0;
+            color: var(--gray-400);
+            font-size: 0.875rem;
         }
 
         .divider::before,
@@ -230,103 +462,127 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             content: '';
             flex: 1;
             height: 1px;
-            background-color: var(--border-color);
+            background: var(--gray-200);
         }
 
         .divider span {
-            margin: 0 1rem;
+            padding: 0 1rem;
         }
 
-        .social-login {
+        .social-buttons {
             display: flex;
             gap: 1rem;
-            margin-bottom: 1.5rem;
         }
 
         .social-btn {
             flex: 1;
-            padding: 0.75rem;
-            border: 2px solid var(--border-color);
-            background-color: white;
-            border-radius: 6px;
-            cursor: pointer;
+            padding: 0.875rem;
+            border: 2px solid var(--gray-200);
+            background: var(--white);
+            border-radius: 12px;
             font-size: 0.9rem;
             font-weight: 600;
-            transition: border-color 0.3s, background-color 0.3s;
+            color: var(--gray-700);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
         }
 
         .social-btn:hover {
-            border-color: var(--accent-color);
-            background-color: #fafafa;
+            border-color: var(--gray-300);
+            background: var(--gray-50);
         }
 
-        .signin-link {
+        .social-btn.google:hover {
+            border-color: #ea4335;
+            color: #ea4335;
+        }
+
+        .social-btn.facebook:hover {
+            border-color: #1877f2;
+            color: #1877f2;
+        }
+
+        .social-btn i {
+            font-size: 1.1rem;
+        }
+
+        .signin-prompt {
             text-align: center;
-            margin-top: 1.5rem;
-            color: #666;
+            margin-top: 1.75rem;
+            color: var(--gray-600);
             font-size: 0.9rem;
         }
 
-        .signin-link a {
-            color: var(--accent-color);
+        .signin-prompt a {
+            color: var(--accent);
             text-decoration: none;
             font-weight: 600;
-            transition: color 0.3s;
+            transition: color 0.3s ease;
         }
 
-        .signin-link a:hover {
+        .signin-prompt a:hover {
+            color: var(--accent-dark);
             text-decoration: underline;
         }
 
-        .password-hint {
-            font-size: 0.8rem;
-            color: #999;
-            margin-top: 0.25rem;
+        /* Password strength indicator */
+        .password-strength {
+            margin-top: 0.5rem;
         }
 
-        .terms-checkbox {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            margin-top: 1rem;
+        .strength-bar {
+            height: 4px;
+            background: var(--gray-200);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 0.35rem;
         }
 
-        .terms-checkbox input {
-            margin-top: 0.25rem;
-            cursor: pointer;
+        .strength-fill {
+            height: 100%;
+            width: 0;
+            border-radius: 2px;
+            transition: all 0.3s ease;
         }
 
-        .terms-checkbox label {
-            margin-bottom: 0;
-            font-weight: 500;
-            font-size: 0.9rem;
+        .strength-fill.weak { width: 33%; background: #ef4444; }
+        .strength-fill.medium { width: 66%; background: #f59e0b; }
+        .strength-fill.strong { width: 100%; background: #10b981; }
+
+        .strength-text {
+            font-size: 0.75rem;
+            color: var(--gray-500);
         }
 
-        .terms-checkbox a {
-            color: var(--accent-color);
-            text-decoration: none;
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .signup-branding {
+                display: none;
+            }
+
+            .signup-form-section {
+                padding: 2rem;
+            }
+
+            .form-header .mobile-logo {
+                display: block;
+            }
         }
 
-        .terms-checkbox a:hover {
-            text-decoration: underline;
-        }
-
-        footer {
-            background-color: var(--primary-color);
-            color: white;
-            text-align: center;
-            padding: 2rem;
-            margin-top: auto;
-        }
-
-        @media (max-width: 768px) {
-            .login-container {
+        @media (max-width: 600px) {
+            .signup-form-section {
                 padding: 1.5rem;
+            }
+
+            .form-container {
                 max-width: 100%;
             }
 
-            .login-header h1 {
+            .form-header h1 {
                 font-size: 1.5rem;
             }
 
@@ -334,294 +590,231 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 grid-template-columns: 1fr;
             }
 
-            nav {
-                flex-wrap: wrap;
-                gap: 1rem;
-            }
-
-            .nav-links {
-                gap: 1rem;
-                flex-wrap: wrap;
-            }
-        }
-
-        .promo-section {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            padding: 60px 20px;
-            margin: 40px 0;
-            border-radius: 12px;
-            color: white;
-            text-align: center;
-        }
-
-        .promo-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .promo-title {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .promo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-
-        .promo-card {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 25px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .promo-card:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-5px);
-            border-color: rgba(255, 255, 255, 0.4);
-        }
-
-        .promo-icon {
-            font-size: 40px;
-            margin-bottom: 15px;
-        }
-
-        .promo-card h3 {
-            font-size: 18px;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        .promo-card p {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.9);
-            line-height: 1.5;
-        }
-
-        .cta-button {
-            display: inline-block;
-            margin-top: 15px;
-            padding: 10px 25px;
-            background: #e74c3c;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            text-decoration: none;
-            transition: background 0.3s ease;
-        }
-
-        .cta-button:hover {
-            background: #c0392b;
-        }
-
-        .featured-offer {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            padding: 40px;
-            border-radius: 10px;
-            text-align: center;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-        }
-
-        .featured-offer h2 {
-            font-size: 24px;
-            margin-bottom: 10px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-        }
-
-        .discount-badge {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px 16px;
-            border-radius: 20px;
-            margin-bottom: 15px;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        footer {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            color: white;
-            padding: 40px 20px 20px;
-            margin-top: 60px;
-        }
-
-        .footer-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        .footer-section h4 {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #ecf0f1;
-        }
-
-        .footer-section a {
-            display: block;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            margin-bottom: 8px;
-            font-size: 14px;
-            transition: color 0.3s ease;
-        }
-
-        .footer-section a:hover {
-            color: #e74c3c;
-        }
-
-        .footer-bottom {
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        @media (max-width: 768px) {
-            .promo-title {
-                font-size: 22px;
-            }
-
-            .featured-offer {
-                padding: 25px;
-            }
-
-            .featured-offer h2 {
-                font-size: 20px;
+            .social-buttons {
+                flex-direction: column;
             }
         }
     </style>
 </head>
 <body>
-    <nav>
-        <div class="logo">
-            <a href="index.php">ShoeTakels</a>
-        </div>
-        <div class="nav-right">
-            <div class="cart-icon">🛒</div>
-        </div>
-    </nav>
-
-    <main>
-        <div class="login-container">
-            <div class="login-header">
-                <h1>Create Account</h1>
-                <p>Join ShoeTakels and start shopping</p>
-            </div>
-
-            <?php if ($error): ?>
-                <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
-            <?php endif; ?>
-
-            <form method="POST" action="signup.php">
-                <!-- Improved two-column form layout -->
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="fullname">Full Name</label>
-                        <input type="text" id="fullname" name="fullname" required placeholder="John Doe" value="<?php echo htmlspecialchars($fullname ?? ''); ?>">
+    <div class="signup-wrapper">
+        <!-- Left Branding Section -->
+        <div class="signup-branding">
+            <div class="branding-content">
+                <div class="branding-logo"><?php echo htmlspecialchars($store_settings['store_name']); ?></div>
+                <p class="branding-tagline">Join thousands of shoe lovers and discover your perfect style</p>
+                
+                <div class="branding-benefits">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-gift"></i>
+                        </div>
+                        <div class="benefit-text">
+                            <h4>Welcome Discount</h4>
+                            <p>Get 15% off your first order</p>
+                        </div>
                     </div>
-
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" name="email" required placeholder="your@email.com" value="<?php echo htmlspecialchars($email); ?>">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div class="benefit-text">
+                            <h4>Exclusive Access</h4>
+                            <p>Early access to new arrivals & sales</p>
+                        </div>
                     </div>
-                </div>
-
-                <!-- Added location field -->
-                <div class="form-row full">
-                    <div class="form-group">
-                        <label for="location">Location / City</label>
-                        <input type="text" id="location" name="location" required placeholder="e.g., New York, NY" value="<?php echo htmlspecialchars($location ?? ''); ?>">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div class="benefit-text">
+                            <h4>Save Favorites</h4>
+                            <p>Create wishlists & track orders</p>
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" required placeholder="At least 8 characters">
-                        <div class="password-hint">Must be at least 8 characters long</div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="confirm_password">Confirm Password</label>
-                        <input type="password" id="confirm_password" name="confirm_password" required placeholder="Re-enter your password">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="benefit-text">
+                            <h4>Rewards Program</h4>
+                            <p>Earn points on every purchase</p>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="terms-checkbox">
-                    <input type="checkbox" id="terms" name="terms" required>
-                    <label for="terms">
-                        I agree to the <a href="terms.php">Terms of Service</a> and <a href="privacy.php">Privacy Policy</a>
-                    </label>
+        <!-- Right Form Section -->
+        <div class="signup-form-section">
+            <div class="form-container">
+                <div class="form-header">
+                    <a href="index.php" class="mobile-logo"><?php echo htmlspecialchars($store_settings['store_name']); ?></a>
+                    <h1>Create your account</h1>
+                    <p>Start your shoe shopping journey today</p>
                 </div>
 
-                <button type="submit" class="btn-primary">Create Account</button>
-            </form>
+                <?php if ($error): ?>
+                    <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
+                <?php endif; ?>
 
-            <div class="divider"><span>OR</span></div>
+                <form method="POST" action="signup.php">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fullname">Full Name</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="fullname" name="fullname" placeholder="John Doe" required value="<?php echo htmlspecialchars($fullname ?? ''); ?>">
+                                <i class="fas fa-user input-icon"></i>
+                            </div>
+                        </div>
 
-            <div class="social-login">
-                <button class="social-btn" onclick="alert('Google Sign Up - Coming Soon')">Google</button>
-                <button class="social-btn" onclick="alert('Facebook Sign Up - Coming Soon')">Facebook</button>
-            </div>
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <div class="input-wrapper">
+                                <input type="email" id="email" name="email" placeholder="you@example.com" required value="<?php echo htmlspecialchars($email); ?>">
+                                <i class="fas fa-envelope input-icon"></i>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="signin-link">
-                Already have an account? <a href="login.php">Sign in here</a>
+                    <div class="form-row full">
+                        <div class="form-group">
+                            <label for="location">Location / Address</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="location" name="location" placeholder="Your city or full address" required value="<?php echo htmlspecialchars($location ?? ''); ?>">
+                                <i class="fas fa-map-marker-alt input-icon"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="password" name="password" placeholder="Create a password" required onkeyup="checkPasswordStrength()">
+                                <i class="fas fa-lock input-icon"></i>
+                                <button type="button" class="password-toggle" onclick="togglePassword('password', 'toggleIcon1')">
+                                    <i class="fas fa-eye" id="toggleIcon1"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength">
+                                <div class="strength-bar">
+                                    <div class="strength-fill" id="strengthFill"></div>
+                                </div>
+                                <span class="strength-text" id="strengthText">Use 8+ characters with mix of letters & numbers</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirm_password">Confirm Password</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm password" required>
+                                <i class="fas fa-lock input-icon"></i>
+                                <button type="button" class="password-toggle" onclick="togglePassword('confirm_password', 'toggleIcon2')">
+                                    <i class="fas fa-eye" id="toggleIcon2"></i>
+                                </button>
+                            </div>
+                            <p class="password-hint" id="matchHint"><i class="fas fa-info-circle"></i> Must match your password</p>
+                        </div>
+                    </div>
+
+                    <div class="terms-checkbox">
+                        <input type="checkbox" id="terms" name="terms" required>
+                        <label for="terms">
+                            I agree to the <a href="terms.php">Terms of Service</a> and <a href="privacy.php">Privacy Policy</a>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn-signup">
+                        <i class="fas fa-user-plus"></i>
+                        Create Account
+                    </button>
+                </form>
+
+                <div class="divider">
+                    <span>or sign up with</span>
+                </div>
+
+                <div class="social-buttons">
+                    <button type="button" class="social-btn google" onclick="alert('Google Sign Up - Coming Soon')">
+                        <i class="fab fa-google"></i>
+                        Google
+                    </button>
+                    <button type="button" class="social-btn facebook" onclick="alert('Facebook Sign Up - Coming Soon')">
+                        <i class="fab fa-facebook-f"></i>
+                        Facebook
+                    </button>
+                </div>
+
+                <p class="signin-prompt">
+                    Already have an account? <a href="login.php">Sign in</a>
+                </p>
             </div>
         </div>
+    </div>
 
-    
-    </main>
+    <script>
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
 
-    <footer>
-        <div class="footer-content">
-            <div class="footer-section">
-                <h4>About ShoeTakels</h4>
-                <a href="#about">About Us</a>
-                <a href="#careers">Careers</a>
-                <a href="#press">Press</a>
-                <a href="#blog">Blog</a>
-            </div>
-            <div class="footer-section">
-                <h4>Customer Service</h4>
-                <a href="#contact">Contact Us</a>
-                <a href="#faq">FAQ</a>
-                <a href="#shipping">Shipping Info</a>
-                <a href="#track">Track Order</a>
-            </div>
-            <div class="footer-section">
-                <h4>Shop</h4>
-                <a href="#men">Men's Shoes</a>
-                <a href="#women">Women's Shoes</a>
-                <a href="#kids">Kids' Shoes</a>
-                <a href="#sale">Sale</a>
-            </div>
-            <div class="footer-section">
-                <h4>Connect</h4>
-                <a href="#facebook">Facebook</a>
-                <a href="#instagram">Instagram</a>
-                <a href="#twitter">Twitter</a>
-                <a href="#newsletter">Newsletter</a>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2025 ShoeTakels. All rights reserved. | <a href="#privacy" style="color: rgba(255,255,255,0.8); text-decoration: none;">Privacy Policy</a> | <a href="#terms" style="color: rgba(255,255,255,0.8); text-decoration: none;">Terms of Service</a></p>
-        </div>
-    </footer>
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strengthFill = document.getElementById('strengthFill');
+            const strengthText = document.getElementById('strengthText');
+            
+            let strength = 0;
+            
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+            
+            strengthFill.className = 'strength-fill';
+            
+            if (password.length === 0) {
+                strengthFill.style.width = '0';
+                strengthText.textContent = 'Use 8+ characters with mix of letters & numbers';
+            } else if (strength <= 1) {
+                strengthFill.classList.add('weak');
+                strengthText.textContent = 'Weak - Add more characters and numbers';
+            } else if (strength <= 2) {
+                strengthFill.classList.add('medium');
+                strengthText.textContent = 'Medium - Try adding special characters';
+            } else {
+                strengthFill.classList.add('strong');
+                strengthText.textContent = 'Strong password!';
+            }
+        }
+
+        // Check password match
+        document.getElementById('confirm_password').addEventListener('keyup', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+            const matchHint = document.getElementById('matchHint');
+            
+            if (confirmPassword.length === 0) {
+                matchHint.innerHTML = '<i class="fas fa-info-circle"></i> Must match your password';
+                matchHint.style.color = '#9ca3af';
+            } else if (password === confirmPassword) {
+                matchHint.innerHTML = '<i class="fas fa-check-circle"></i> Passwords match!';
+                matchHint.style.color = '#10b981';
+            } else {
+                matchHint.innerHTML = '<i class="fas fa-times-circle"></i> Passwords do not match';
+                matchHint.style.color = '#ef4444';
+            }
+        });
+    </script>
 </body>
 </html>

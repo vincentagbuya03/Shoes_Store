@@ -4,14 +4,21 @@ function addToCart(productId, quantity = 1) {
     formData.append('product_id', productId);
     formData.append('quantity', quantity);
 
-    fetch('add-to-cart.php', {
+    fetch('partials/add-to-cart.php', {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => response.text().then(function(text){
+      if (!text) return null;
+      try { return JSON.parse(text); } catch(e) { console.warn('addToCart: invalid JSON', text); return null; }
+    }))
     .then(data => {
         if (data.success) {
-            showNotification('✓ ' + data.message, 'success');
+        showNotification('✓ ' + data.message, 'success');
+        // If server returned a cart_count, update the cart badge
+        if (data.cart_count !== undefined) {
+          updateCartBadge(data.cart_count);
+        }
         } else {
             showNotification('✗ ' + data.message, 'error');
         }
@@ -20,6 +27,36 @@ function addToCart(productId, quantity = 1) {
         console.error('Error:', error);
         showNotification('✗ Error adding item to cart', 'error');
     });
+}
+
+// Update or create cart badge in header
+function updateCartBadge(count) {
+  if (typeof count !== 'number' && typeof count !== 'string') return;
+  const countText = String(count);
+
+  // Try common ID/class variations used across pages
+  let badge = document.getElementById('cart-badge') || document.getElementById('cartBadge');
+  if (!badge) {
+    badge = document.querySelector('.cart-badge');
+  }
+
+  if (badge) {
+    badge.textContent = countText;
+    badge.style.display = countText === '0' ? 'none' : 'inline-block';
+    badge.classList.add('updated');
+    return;
+  }
+
+  // If no badge exists, create one and append to cart icon
+  const cartIcon = document.querySelector('.cart-icon') || document.getElementById('cartIcon') || document.getElementById('cart-icon');
+  if (cartIcon) {
+    const span = document.createElement('span');
+    span.className = 'cart-badge';
+    span.id = 'cartBadge';
+    span.textContent = countText;
+    span.style.display = countText === '0' ? 'none' : 'inline-block';
+    cartIcon.appendChild(span);
+  }
 }
 
 // Show notification toast

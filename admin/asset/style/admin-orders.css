@@ -1,0 +1,298 @@
+
+
+
+#ordersRegion {
+  background: var(--page-bg);
+  padding: 1rem;
+  border-radius: var(--radius);
+}
+
+/* Make table look like a card */
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px; /* allows table to be scrollable on small screens */
+  background: var(--card-bg);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+/* Table header */
+.orders-table thead th {
+  text-align: left;
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+/* Table body rows */
+.orders-table tbody tr {
+  border-bottom: 1px solid rgba(14,20,30,0.04);
+  transition: background .12s ease;
+}
+.orders-table tbody tr:hover {
+  background: rgba(59,130,246,0.03);
+}
+
+/* Cells */
+.orders-table td {
+  padding: 0.85rem 1rem;
+  vertical-align: middle;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+/* No-data / Loading rows */
+.orders-table .no-data {
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Actions cell center */
+.orders-table td[style*="text-align:center"] {
+  text-align: center;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .45rem .65rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: #f3f4f6;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.btn.ghost {
+  background: transparent;
+  border: 1px solid rgba(14,20,30,0.06);
+}
+.btn:active { transform: translateY(1px); }
+
+/* Status select */
+.status-select {
+  padding: .35rem .5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #000000;
+  font-size: 0.9rem;
+  color: var(--text);
+  min-width: 130px;
+  
+}
+.status-select:focus {
+  outline: none;
+  box-shadow: 0 6px 18px rgba(59,130,246,0.06);
+  border-color: rgba(59,130,246,0.45);
+}
+
+/* Status colors */
+.status-select.status-pending {
+  background: #fef3c7; /* amber-100 */
+  border-color: #f59e0b; /* amber-500 */
+  color: #000; /* black text for better contrast */
+}
+.status-select.status-confirmed {
+  background: #e0f2fe; /* blue-100 */
+  border-color: #3b82f6; /* blue-500 */
+  color: #1e3a8a;
+}
+.status-select.status-delivering {
+  background: #ecfeff; /* teal-50 */
+  border-color: #06b6d4; /* teal-400 */
+  color: #055160;
+}
+.status-select.status-completed {
+  background: #dcfce7; /* green-100 */
+  border-color: #10b981; /* green-500 */
+  color: #065f46;
+}
+.status-select.status-cancelled {
+  background: #fee2e2; /* red-100 */
+  border-color: #ef4444; /* red-500 */
+  color: #000000 !important;
+}
+.status-select.status-cancelled option {
+  color: #000000 !important;
+    font-size: 0.9rem !important;
+}
+
+.status-select.status-pending:focus { box-shadow: 0 8px 20px rgba(245,158,11,0.12); }
+.status-select.status-confirmed:focus { box-shadow: 0 8px 20px rgba(59,130,246,0.12); }
+.status-select.status-delivering:focus { box-shadow: 0 8px 20px rgba(6,182,212,0.12); }
+.status-select.status-completed:focus { box-shadow: 0 8px 20px rgba(16,185,129,0.12); }
+.status-select.status-cancelled:focus { box-shadow: 0 8px 20px rgba(239,68,68,0.12); }
+
+/* Order items list in modal */
+.order-items {
+  margin: 0.4rem 0 0 0;
+  padding-left: 1.15rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+/* Modal backdrop improvements */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: none; /* keep existing show/hide JS behavior */
+  align-items: center;
+  justify-content: center;
+  background: rgba(7,11,21,0.5);
+  padding: 1rem;
+  z-index: 2000; /* make sure modal covers sidebar/header */
+}
+/* animate and blur like customers modal */
+.modal-backdrop {
+  backdrop-filter: blur(6px) saturate(110%);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+.modal-backdrop.open { display:flex; opacity:1; }
+.modal {
+  transform: translateY(18px) scale(.995);
+  opacity: 0;
+  transition: transform .24s ease, opacity .24s ease;
+}
+.modal.open { transform: translateY(0) scale(1); opacity:1; }
+.modal {
+  /* center modal and keep header/footer fixed while body scrolls */
+  display: flex;
+  flex-direction: column;
+  width: 880px;
+  max-width: calc(100% - 40px);
+  max-height: calc(100vh - 80px);
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 0.8rem;
+  box-shadow: 0 18px 40px rgba(2,6,23,0.3);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* make modal a positioned container so we can absolutely place the close button */
+.modal { position: relative; }
+
+/* Modal design improvements: header, body grid, side card, buttons */
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  /* leave space on the right for the absolute close button */
+  padding-right: 56px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.modal-sub {
+  color: var(--text-secondary);
+  font-size: .9rem;
+  margin-top: .25rem;
+}
+.modal-close {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal-close:hover { background: rgba(255,255,255,0.02); }
+
+/* place the close control in the top-right corner of the modal */
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-body {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 1rem;
+  margin-top: 1rem;
+  /* allow the body to scroll independently of the modal container */
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 0.6rem 0.4rem 0.6rem 0.4rem;
+}
+.modal-main {
+  padding-right: .25rem;
+  min-width: 0; /* allow children to shrink inside grid */
+}
+.modal-side {
+  min-width: 240px;
+}
+.form-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.02);
+}
+.form-card strong { display:block; margin-bottom:.35rem; }
+.form-card .muted { color: var(--text-secondary); font-size: .92rem; }
+
+.order-items li { margin-bottom:.4rem; color:var(--text-secondary); }
+.order-items li strong { color:var(--text-primary); }
+
+.form-card img { width:100%; height:auto; object-fit:cover; border-radius:8px; display:block; }
+
+.modal-actions { display:flex; justify-content:flex-end; gap:.5rem; }
+.modal-actions .btn { padding:.5rem .85rem; border-radius:8px; }
+.modal-actions .btn.ghost { background: transparent; border:1px solid rgba(255,255,255,0.04); }
+
+/* Responsive tweaks */
+@media (max-width: 920px) {
+  .modal-body { grid-template-columns: 1fr; }
+  .modal-side { order: 2; }
+  .modal-main { order: 1; }
+  .modal { width: calc(100% - 32px); max-height: calc(100vh - 40px); }
+}
+
+/* Large proof image inside modal main */
+.proof-large-wrap { display:block; text-align:center; }
+.proof-large { width:100%; max-height:420px; object-fit:contain; border-radius:8px; border:1px solid rgba(255,255,255,0.04); box-shadow: 0 8px 30px rgba(2,6,23,0.45); }
+
+
+/* Responsive behavior: make table scroll horizontally on small screens */
+@media (max-width: 900px) {
+  #ordersRegion { padding: .5rem; }
+  .orders-table { min-width: 640px; }
+  .page-search, #orderSearch { width: 100%; }
+}
+
+/* Small screens: allow the whole table area to scroll */
+@media (max-width: 720px) {
+  #ordersRegion { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .orders-table { min-width: 620px; }
+  .page-title { align-items: flex-start; gap: .5rem; }
+}
+
+/* improve contrast for danger items (if used) */
+.orders-table .danger,
+.orders-table .status-cancelled {
+  color: var(--danger);
+  font-weight: 600;
+}

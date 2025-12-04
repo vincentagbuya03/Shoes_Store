@@ -1,0 +1,191 @@
+/* Page-specific styles for admin/products.php (scoped under .products-panel) */
+.products-panel .page-actions {
+    display:flex;
+    gap:.75rem;
+    align-items:center;
+}
+
+/* allow inputs in the actions area to grow and fill available space */
+.products-panel .page-actions input {
+    flex: 1;
+    min-width: 0; /* allow shrinking in flex containers */
+    padding:.5rem .75rem;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--bg-card);
+    color:var(--text-primary);
+}
+
+/* extra selector for inputs that were given class `page-search` */
+.products-panel .page-search { padding:.5rem .75rem; border-radius:8px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-primary); }
+
+.products-panel .btn {
+    background:var(--primary);
+    color:white;
+    border:none;
+    padding:.5rem .75rem;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+}
+.products-panel .search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.5rem 1rem;
+    min-width: 280px;
+}
+
+.products-panel .search-box svg {
+    width: 18px;
+    height: 18px;
+    color: var(--text-secondary);
+}
+
+.products-panel .search-box input {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    width: 100%;
+    outline: none;
+}
+
+.products-panel .search-box input::placeholder {
+    color: var(--text-muted);
+}
+.products-panel .btn.ghost {
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-primary);
+}
+.products-panel .table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:1rem;
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    overflow:hidden;
+}
+.products-panel .table th, .products-panel .table td {
+    padding:.75rem 1rem;
+    text-align:left;
+    border-bottom:1px solid var(--border);
+    color:var(--text-primary);
+    font-size:.95rem;
+}
+.products-panel .table th {
+    color:var(--text-secondary);
+    font-weight:700;
+    font-size:.8rem;
+    text-transform:uppercase;
+}
+.products-panel .product-thumb {
+    width:56px;
+    height:56px;
+    border-radius:8px;
+    overflow:hidden;
+    object-fit:cover;
+    display:block;
+}
+.products-panel .actions button {
+    margin-left:.5rem;
+}
+/* modal */
+.products-panel .modal-backdrop {
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(2,6,23,0.6); z-index:2000;
+}
+.products-panel .modal {
+    width:760px;
+    max-width:95%;
+    background:var(--bg-card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:1rem;
+}
+.products-panel .form-row { display:flex; gap:.75rem; margin-bottom:.75rem; }
+.products-panel .form-row > * { flex:1; }
+.products-panel input, .products-panel select, .products-panel textarea {
+    width:100%;
+    padding:.5rem .65rem;
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-primary);
+    border-radius:8px;
+    outline:none;
+}
+
+/* Products list moved from admin-dashboard.css */
+.products-panel .products-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.products-panel .product-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-radius: 10px;
+    transition: var(--transition);
+}
+
+.products-panel .product-item:hover {
+    background: var(--bg-hover);
+}
+
+.products-panel .product-item .product-image {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--bg-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.products-panel .product-item .product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.products-panel .product-item .product-image svg {
+    width: 24px;
+    height: 24px;
+    color: var(--text-muted);
+}
+
+.products-panel .product-item .product-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.products-panel .product-item .product-name {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.products-panel .product-item .product-brand {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.products-panel .product-item .product-price {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--success);
+}

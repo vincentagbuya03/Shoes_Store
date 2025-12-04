@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Your location">
+  <defs>
+    <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#06b6d4"/>
+      <stop offset="1" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- pin background -->
+  <g fill="none" fill-rule="evenodd">
+    <path d="M32 2c7.732 0 14 6.268 14 14 0 7.728-9.626 19.922-13.87 24.287a3 3 0 0 1-4.26 0C27.626 35.922 18 23.728 18 16 18 8.268 24.268 2 32 2z" fill="url(#g1)"/>
+    <circle cx="32" cy="16" r="6.5" fill="#fff" opacity="0.06"/>
+    <circle cx="32" cy="16" r="5.5" fill="#fff"/>
+    <!-- small center dot to indicate exact location -->
+    <circle cx="32" cy="16" r="2.2" fill="#0284c7"/>
+    <!-- subtle shadow -->
+    <ellipse cx="32" cy="52" rx="12" ry="3.2" fill="#000" opacity="0.12"/>
+  </g>
+
+</svg>
