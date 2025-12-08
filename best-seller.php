@@ -77,8 +77,8 @@ $trending_result = $conn->query($trending_query);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Best Sellers - ShoeTakels</title>
     <link rel="icon" type="image/x-icon" href="upload/picture/logo.png">
-    <link rel="stylesheet" href="asset/style/index.css">
     <link rel="stylesheet" href="asset/style/product.css">
+    <link rel="stylesheet" href="asset/style/animations.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
     <style>
         :root {
@@ -558,7 +558,7 @@ $trending_result = $conn->query($trending_query);
                 <div class="brand-mega-menu">
                     <div class="brand-grid">
                         <?php
-                            $brand_query = "SELECT brand_id, brand_name, brand_logo FROM Brand ORDER BY brand_name ASC";
+                            $brand_query = "SELECT brand_id, brand_name, brand_logo FROM brand ORDER BY brand_name ASC";
                             $brand_result = $conn->query($brand_query);
                             if ($brand_result && $brand_result->num_rows > 0) {
                                 while ($brand = $brand_result->fetch_assoc()) {

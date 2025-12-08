@@ -17,9 +17,7 @@ Your project is live at:
 **[https://vercel.com/hayopka455-gmailcoms-projects/v0-admin-dashboard-with-php](https://vercel.com/hayopka455-gmailcoms-projects/v0-admin-dashboard-with-php)**
 
 ## Build your app
-
 Continue building your app on:
-
 **[https://v0.app/chat/qCcaxctMi3c](https://v0.app/chat/qCcaxctMi3c)**
 
 ## How It Works

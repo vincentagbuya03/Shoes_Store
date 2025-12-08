@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once 'db_connection.php';
 session_start();
 
@@ -12,11 +15,11 @@ require_once 'inc/store_settings.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($store_settings['store_name']); ?></title>
     <link rel="icon" type="image/x-icon" href="upload/picture/logo.png">
-    <link rel="stylesheet" href="asset/style/index.css">
     <link rel="stylesheet" href="asset/style/product.css">
     <link rel="stylesheet" href="asset/style/carousel.css">
     <link rel="stylesheet" href="asset/style/brand-menu.css">
     <link rel="stylesheet" href="asset/style/beautiful-ui.css">
+    <link rel="stylesheet" href="asset/style/animations.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
     <script src="asset/script/script.js"></script>
     <?php echo getStoreThemeCSS(); ?>
@@ -56,7 +59,7 @@ require_once 'inc/store_settings.php';
                     <div class="brand-grid">
                         <?php
                             $brand_query = "SELECT brand_id, brand_name, brand_logo 
-                                            FROM Brand 
+                                            FROM brand 
                                             ORDER BY brand_name ASC";
                             $brand_result = $conn->query($brand_query);
 
@@ -194,58 +197,72 @@ require_once 'inc/store_settings.php';
     </section>
     
     <section class="new-arrivals" id="new-arrivals">
-    <h2 class="section-title">New Arrivals</h2>
-    <p class="section-subtitle">Fresh styles just dropped</p>
-    
-    <div class="products-grid">
-        <?php
-            $query = "
-                SELECT 
-                    s.product_id, 
-                    s.name, 
-                    b.brand_name, 
-                    s.Category AS CategoryName,
-                    (
-                        SELECT pci2.image_url
-                        FROM product_color_image pci2
-                        WHERE pci2.product_id = s.product_id
-                        ORDER BY pci2.sort_order ASC
-                        LIMIT 1
-                    ) AS image_url
-                FROM Product s
-                LEFT JOIN Brand b ON s.brand_id = b.brand_id
-                ORDER BY s.created_at DESC
-                LIMIT 4
-            ";
+        <div class="section-header-modern">
+            <span class="section-badge"><i class="fas fa-bolt"></i> Just In</span>
+            <h2 class="section-title section-title-modern">New Arrivals</h2>
+            <p class="section-subtitle section-subtitle-modern">Fresh styles just dropped</p>
+        </div>
+        
+        <div class="products-grid">
+            <?php
+                $query = "
+                    SELECT 
+                        s.product_id, 
+                        s.name, 
+                        b.brand_name, 
+                        s.Category AS CategoryName,
+                        (
+                            SELECT pci2.image_url
+                            FROM product_color_image pci2
+                            WHERE pci2.product_id = s.product_id
+                            ORDER BY pci2.sort_order ASC
+                            LIMIT 1
+                        ) AS image_url,
+                        (SELECT MIN(v.price) FROM product_variant v WHERE v.product_id = s.product_id) AS min_price
+                    FROM product s
+                    LEFT JOIN brand b ON s.brand_id = b.brand_id
+                    ORDER BY s.created_at DESC
+                    LIMIT 4
+                ";
 
-            $result = $conn->query($query);
-            
-            if ($result && $result->num_rows > 0) {
-                while($product = $result->fetch_assoc()) {
-                    $img_path = !empty($product['image_url']) ? $product['image_url'] : 'upload/product-image/placeholder.png';
-                    $img = htmlspecialchars($img_path, ENT_QUOTES, 'UTF-8');
-                    $name = htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8');
-                    $brand = htmlspecialchars($product['brand_name'], ENT_QUOTES, 'UTF-8');
-                    $pid = (int)$product['product_id'];
-                    echo "
-                    <div class='product-card'>
-                        <div class='product-image'>
-                            <a href='product-detail.php?id={$pid}' title='View $name'>
-                                <img src='$img' alt='$name' class='product-thumb' loading='lazy'>
-                            </a>
+                $result = $conn->query($query);
+                
+                if ($result && $result->num_rows > 0) {
+                    while($product = $result->fetch_assoc()) {
+                        $img_path = !empty($product['image_url']) ? $product['image_url'] : 'upload/product-image/placeholder.png';
+                        $img = htmlspecialchars($img_path, ENT_QUOTES, 'UTF-8');
+                        $name = htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8');
+                        $brand = htmlspecialchars($product['brand_name'], ENT_QUOTES, 'UTF-8');
+                        $pid = (int)$product['product_id'];
+                        $price = $product['min_price'] !== null ? '₱' . number_format((float)$product['min_price'], 2) : '';
+                        echo "
+                        <div class='product-card'>
+                            <div class='product-image-container'>
+                                <span class='product-badge new-badge'>New</span>
+                                <a href='product-detail.php?id={$pid}' title='View $name'>
+                                    <img src='$img' alt='$name' class='product-image' loading='lazy'>
+                                </a>
+                                <div class='product-overlay'></div>
+                                <div class='product-actions'>
+                                    <a href='product-detail.php?id={$pid}' class='action-btn' title='Quick View'><i class='fas fa-eye'></i></a>
+                                    <button class='action-btn' title='Add to Wishlist'><i class='fas fa-heart'></i></button>
+                                </div>
+                            </div>
+                            <div class='product-info'>
+                                <div class='product-brand'>$brand</div>
+                                <h3 class='product-name'><a href='product-detail.php?id={$pid}'>$name</a></h3>
+                                <div class='product-price'>$price</div>
+                                <button class='btn-primary add-to-cart-btn' onclick=\"window.location.href='login.php'\"><i class='fas fa-shopping-bag'></i> Add to Cart</button>
+                            </div>
                         </div>
-                        <h3 class='product-name'><a href='product.php?id={$pid}'>$name</a></h3>
-                        <div class='product-brand'>$brand</div>
-                        <button class='btn-primary add-to-cart-btn' onclick=\"window.location.href='login.php'\" style='width: 100%;'>Add to Cart</button>
-                    </div>
-                    ";
+                        ";
+                    }
+                } else {
+                    echo "<p class='no-products'>No new arrivals available</p>";
                 }
-            } else {
-                echo "<p>No new arrivals available</p>";
-            }
-        ?>
-    </div>
-</section>
+            ?>
+        </div>
+    </section>
 
     <section class="video-section">
         <div class="video-container">
@@ -262,7 +279,7 @@ require_once 'inc/store_settings.php';
             <div class="logo-carousel-container" id="logoCarousel">
                 <?php
                     $carousel_brand_query = "SELECT brand_id, brand_name, brand_logo 
-                                             FROM Brand 
+                                             FROM brand 
                                              WHERE brand_logo IS NOT NULL AND brand_logo != ''
                                              ORDER BY brand_name ASC";
                     $carousel_brand_result = $conn->query($carousel_brand_query);
@@ -292,101 +309,103 @@ require_once 'inc/store_settings.php';
     </section>
 
 <section class="featured" id="shop">
-    <h2 class="section-title">Featured Collection</h2>
-    <p class="section-subtitle">Handpicked styles for the season</p>
-    <div class="products-grid">
-        <?php
-            $query = "
-                SELECT 
-                    s.product_id, 
-                    s.name, 
-                    b.brand_name, 
-                    s.Category AS CategoryName, 
-                    (
-                        SELECT pci2.image_url
-                        FROM product_color_image pci2
-                        WHERE pci2.product_id = s.product_id
-                        ORDER BY pci2.sort_order ASC
-                        LIMIT 1
-                    ) AS image_url,
-                    (
-                        SELECT c2.color_name
-                        FROM product_color_image pci3
-                        LEFT JOIN color c2 ON pci3.color_id = c2.color_id
-                        WHERE pci3.product_id = s.product_id
-                        ORDER BY pci3.sort_order ASC
-                        LIMIT 1
-                    ) AS primary_color,
-                    (
-                        SELECT MIN(v.price) FROM product_variant v WHERE v.product_id = s.product_id AND v.color_id = (
-                            SELECT pci4.color_id FROM product_color_image pci4 WHERE pci4.product_id = s.product_id ORDER BY pci4.sort_order ASC LIMIT 1
-                        )
-                    ) AS min_price,
-                    (
-                        SELECT MAX(v.price) FROM product_variant v WHERE v.product_id = s.product_id AND v.color_id = (
-                            SELECT pci5.color_id FROM product_color_image pci5 WHERE pci5.product_id = s.product_id ORDER BY pci5.sort_order ASC LIMIT 1
-                        )
-                    ) AS max_price
-                FROM Product s
-                LEFT JOIN Brand b ON s.brand_id = b.brand_id
-                ORDER BY s.created_at ASC
-                LIMIT 4
-            ";
-            $result = $conn->query($query);
-            
-            if ($result && $result->num_rows > 0) {
-                while($product = $result->fetch_assoc()) {
-                    $img_path = !empty($product['image_url']) ? $product['image_url'] : 'upload/product-image/placeholder.png';
-                    $img = htmlspecialchars($img_path, ENT_QUOTES, 'UTF-8');
-                    $name = htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8');
-                    $brand = htmlspecialchars($product['brand_name'], ENT_QUOTES, 'UTF-8');
-                    $pid = (int)$product['product_id'];
-                    $raw_primary_color = $product['primary_color'] ?? '';
-                    $primary_color = htmlspecialchars($raw_primary_color !== '' ? $raw_primary_color : 'N/A', ENT_QUOTES, 'UTF-8');
-                    $min_price = $product['min_price'] !== null ? number_format((float)$product['min_price'], 2) : 'N/A';
-                    $max_price = $product['max_price'] !== null ? number_format((float)$product['max_price'], 2) : 'N/A';
-                    $price_display = ($min_price === $max_price) ? "₱$min_price" : "₱$min_price - ₱$max_price";
-
-                    // Fetch all available colors for this product
-                    $color_sql = "SELECT DISTINCT c.color_name FROM product_variant v LEFT JOIN color c ON v.color_id = c.color_id WHERE v.product_id = $pid ORDER BY c.color_name ASC";
-                    $color_res = $conn->query($color_sql);
-                    $color_swatches = '';
-                    if ($color_res && $color_res->num_rows > 0) {
-                        $color_swatches .= '<div class="product-swatches">';
-                        while ($color_row = $color_res->fetch_assoc()) {
-                            $color_name = $color_row['color_name'];
-                            $color_param = urlencode($color_name);
-                            $color_label = htmlspecialchars($color_name, ENT_QUOTES, 'UTF-8');
-                            $color_style = "background-color: $color_label;";
-                            $color_swatches .= "<a href='product-detail.php?id={$pid}&color=$color_param' class='color-swatch' title='$color_label' style='$color_style'></a> ";
+        <div class="section-header-modern">
+            <span class="section-badge"><i class="fas fa-star"></i> Featured</span>
+            <h2 class="section-title section-title-modern">Featured Collection</h2>
+            <p class="section-subtitle section-subtitle-modern">Handpicked styles for the season</p>
+        </div>
+        <div class="products-grid">
+            <?php
+                $query = "
+                    SELECT 
+                        s.product_id, 
+                        s.name, 
+                        b.brand_name, 
+                        s.Category AS CategoryName, 
+                        (
+                            SELECT pci2.image_url
+                            FROM product_color_image pci2
+                            WHERE pci2.product_id = s.product_id
+                            ORDER BY pci2.sort_order ASC
+                            LIMIT 1
+                        ) AS image_url,
+                        (
+                            SELECT c2.color_name
+                            FROM product_color_image pci3
+                            LEFT JOIN color c2 ON pci3.color_id = c2.color_id
+                            WHERE pci3.product_id = s.product_id
+                            ORDER BY pci3.sort_order ASC
+                            LIMIT 1
+                        ) AS primary_color,
+                        (SELECT MIN(v.price) FROM product_variant v WHERE v.product_id = s.product_id) AS min_price,
+                        (SELECT MAX(v.price) FROM product_variant v WHERE v.product_id = s.product_id) AS max_price
+                    FROM product s
+                    LEFT JOIN brand b ON s.brand_id = b.brand_id
+                    ORDER BY RAND()
+                    LIMIT 4
+                ";
+                $result = $conn->query($query);
+                
+                if ($result && $result->num_rows > 0) {
+                    while($product = $result->fetch_assoc()) {
+                        $img_path = !empty($product['image_url']) ? $product['image_url'] : 'upload/product-image/placeholder.png';
+                        $img = htmlspecialchars($img_path, ENT_QUOTES, 'UTF-8');
+                        $name = htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8');
+                        $brand = htmlspecialchars($product['brand_name'], ENT_QUOTES, 'UTF-8');
+                        $pid = (int)$product['product_id'];
+                        $raw_primary_color = $product['primary_color'] ?? '';
+                        $min_price = $product['min_price'] !== null ? number_format((float)$product['min_price'], 2) : null;
+                        $max_price = $product['max_price'] !== null ? number_format((float)$product['max_price'], 2) : null;
+                        $price_display = '';
+                        if ($min_price !== null) {
+                            $price_display = ($min_price === $max_price) ? "₱$min_price" : "₱$min_price - ₱$max_price";
                         }
-                        $color_swatches .= '</div>';
-                    }
 
-                    echo "
-                    <div class='product-card'>
-                        <div class='product-image'>
-                            <a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "' title='View $name'>
-                                <img src='$img' alt='$name' class='product-thumb' loading='lazy'>
-                            </a>
+                        // Fetch all available colors for this product
+                        $color_sql = "SELECT DISTINCT c.color_name FROM product_variant v LEFT JOIN color c ON v.color_id = c.color_id WHERE v.product_id = $pid AND c.color_name IS NOT NULL ORDER BY c.color_name ASC LIMIT 5";
+                        $color_res = $conn->query($color_sql);
+                        $color_swatches = '';
+                        if ($color_res && $color_res->num_rows > 0) {
+                            $color_swatches .= '<div class="product-swatches">';
+                            while ($color_row = $color_res->fetch_assoc()) {
+                                $color_name = $color_row['color_name'];
+                                $color_param = urlencode($color_name);
+                                $color_label = htmlspecialchars($color_name, ENT_QUOTES, 'UTF-8');
+                                $color_style = "background-color: $color_label;";
+                                $color_swatches .= "<a href='product-detail.php?id={$pid}&color=$color_param' class='color-swatch' title='$color_label' style='$color_style'></a>";
+                            }
+                            $color_swatches .= '</div>';
+                        }
+
+                        echo "
+                        <div class='product-card'>
+                            <span class='product-badge featured-badge'><i class='fas fa-star'></i></span>
+                            <div class='product-image-container'>
+                                <a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "' title='View $name'>
+                                    <img src='$img' alt='$name' class='product-image' loading='lazy'>
+                                </a>
+                                <div class='product-overlay'></div>
+                                <div class='product-actions'>
+                                    <a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "' class='action-btn' title='Quick View'><i class='fas fa-eye'></i></a>
+                                    <button class='action-btn' title='Add to Wishlist'><i class='fas fa-heart'></i></button>
+                                </div>
+                            </div>
+                            <div class='product-info'>
+                                <div class='product-brand'>$brand</div>
+                                <h3 class='product-name'><a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "'>$name</a></h3>
+                                $color_swatches
+                                <div class='product-price'>$price_display</div>
+                                <button class='btn-primary add-to-cart-btn' data-product-id='$pid'><i class='fas fa-shopping-bag'></i> Add to Cart</button>
+                            </div>
                         </div>
-                        <h3 class='product-name'><a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "'>$name</a></h3>
-                        <div class='product-brand'>$brand</div>
-                        <div class='product-color'>$primary_color</div>
-                        $color_swatches
-                        <div class='product-price'>$price_display</div>
-                        <!-- Add data-product-id to button for AJAX handling -->
-                        <button class='btn-primary add-to-cart-btn' data-product-id='$pid' style='width: 100%;'>Add to Cart</button>
-                    </div>
-                    ";
+                        ";
+                    }
+                } else {
+                    echo "<p class='no-products'>No featured products available</p>";
                 }
-
-            } else {
-                echo "<p>No featured products available</p>";
-            }
-        ?>
-    </div>
-</section>
+            ?>
+        </div>
+    </section>
     <section class="benefits benefits-modern">
         <div class="benefit-item benefit-item-modern">
             <div class="benefit-icon">
@@ -707,5 +726,6 @@ require_once 'inc/store_settings.php';
             });
         }
     </script>
+    <?php include __DIR__ . '/partials/chatbot.php'; ?>
 </body>
 </html>

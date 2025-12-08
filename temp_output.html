@@ -1,0 +1,1515 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAMBA OG SHOE - Shoe Takels</title>
+    <link rel="icon" type="image/x-icon" href="upload/picture/logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style id="store-customer-theme">
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    :root {
+        --store-primary: #ea580c;
+        --store-primary-light: rgba(234, 88, 12, 0.1);
+        --store-primary-medium: rgba(234, 88, 12, 0.2);
+        --store-secondary: #f97316;
+        --store-secondary-light: rgba(249, 115, 22, 0.1);
+        --store-accent: #fb923c;
+        --store-accent-light: rgba(251, 146, 60, 0.15);
+        --store-bg: #ffffff;
+        --store-bg-secondary: #f8fafc;
+        --store-text: #0f172a;
+        --store-text-secondary: #64748b;
+        --store-border: #e2e8f0;
+        --store-nav-bg: #ffffff;
+        --store-card-bg: #ffffff;
+        --store-font: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        --store-gradient: linear-gradient(135deg, #ea580c, #f97316);
+        --store-gradient-accent: linear-gradient(135deg, #f97316, #fb923c);
+    }
+    
+    /* Base Styles */
+    body {
+        font-family: var(--store-font);
+        background-color: var(--store-bg);
+        color: var(--store-text);
+        transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    
+    /* Smooth transitions for all themed elements */
+    *, *::before, *::after {
+        transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    a, button {
+        transition: all 0.3s ease;
+    }
+    
+    /* Navigation */
+    nav, .navbar {
+        background-color: var(--store-nav-bg) !important;
+        border-bottom: 1px solid var(--store-border);
+    }
+    nav a, .navbar a, .nav-links a {
+        color: var(--store-text) !important;
+    }
+    nav a:hover, .navbar a:hover, .nav-links a:hover {
+        color: var(--store-primary) !important;
+    }
+    .logo a {
+        color: var(--store-text) !important;
+        font-weight: 700;
+    }
+    
+    /* Buttons - Primary with Gradient */
+    .btn-primary, .add-to-cart-btn, button[type='submit'], 
+    .checkout-btn, .primary-btn, .cta-btn {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        box-shadow: 0 2px 8px var(--store-primary-medium);
+    }
+    .btn-primary:hover, .add-to-cart-btn:hover, button[type='submit']:hover,
+    .checkout-btn:hover, .primary-btn:hover, .cta-btn:hover {
+        background: var(--store-gradient-accent) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px var(--store-primary-medium);
+    }
+    
+    /* Buttons - Secondary/Outline */
+    .btn-secondary, .btn-outline, .secondary-btn {
+        background: transparent !important;
+        color: var(--store-primary) !important;
+        border: 2px solid var(--store-primary) !important;
+        border-radius: 8px;
+        padding: 10px 22px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .btn-secondary:hover, .btn-outline:hover, .secondary-btn:hover {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        border-color: transparent !important;
+    }
+    
+    /* Links */
+    a {
+        color: var(--store-primary);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+    a:hover {
+        color: var(--store-secondary);
+    }
+    
+    /* Product Cards - Enhanced */
+    .product-card, .card {
+        background-color: var(--store-card-bg);
+        border: 1px solid var(--store-border);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+    }
+    .product-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--store-gradient);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 0;
+        border-radius: 16px;
+    }
+    .product-card:hover, .card:hover {
+        border-color: transparent;
+        box-shadow: 0 20px 40px var(--store-primary-medium);
+        transform: translateY(-8px);
+    }
+    .product-card:hover::before {
+        opacity: 0.05;
+    }
+    .product-card > *, .card > * {
+        position: relative;
+        z-index: 1;
+    }
+    .product-name a, .product-card h3 a {
+        color: var(--store-text) !important;
+        transition: color 0.2s ease;
+    }
+    .product-name a:hover, .product-card h3 a:hover {
+        color: var(--store-primary) !important;
+    }
+    .product-price, .price {
+        background: var(--store-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+        font-size: 1.25rem;
+    }
+    .old-price, .original-price {
+        color: var(--store-text-secondary) !important;
+        text-decoration: line-through;
+        -webkit-text-fill-color: var(--store-text-secondary);
+    }
+    
+    /* Badges - Enhanced with Gradients */
+    .product-badge, .badge {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        box-shadow: 0 2px 8px var(--store-primary-medium);
+    }
+    .product-badge.hot, .badge-hot {
+        background: linear-gradient(135deg, #ef4444, #f97316) !important;
+        animation: pulse 2s infinite;
+    }
+    .product-badge.sale, .badge-sale {
+        background: linear-gradient(135deg, var(--store-secondary), var(--store-accent)) !important;
+    }
+    .product-badge.new, .badge-new {
+        background: linear-gradient(135deg, var(--store-accent), var(--store-primary)) !important;
+    }
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    
+    /* Form Elements */
+    input[type='text'], input[type='email'], input[type='password'], 
+    input[type='search'], input[type='number'], input[type='tel'],
+    textarea, select {
+        background: var(--store-bg);
+        color: var(--store-text);
+        border: 1px solid var(--store-border);
+        border-radius: 8px;
+        padding: 12px 16px;
+        transition: all 0.2s ease;
+    }
+    input:focus, textarea:focus, select:focus {
+        outline: none;
+        border-color: var(--store-primary) !important;
+        box-shadow: 0 0 0 3px var(--store-primary-light);
+    }
+    
+    /* Cart Icon - Enhanced */
+    .cart-icon, .cart-btn {
+        color: var(--store-text);
+        position: relative;
+        transition: color 0.2s ease;
+    }
+    .cart-icon:hover, .cart-btn:hover {
+        color: var(--store-primary);
+    }
+    .cart-badge {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        font-weight: 600;
+        min-width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        box-shadow: 0 2px 8px var(--store-primary-medium);
+    }
+    
+    /* Sections */
+    section, .section {
+        background-color: var(--store-bg);
+    }
+    .section-title, h1, h2, h3 {
+        color: var(--store-text);
+    }
+    
+    /* Footer - Enhanced */
+    footer {
+        background: linear-gradient(180deg, var(--store-bg-secondary) 0%, var(--store-bg) 100%) !important;
+        color: var(--store-text);
+        border-top: 1px solid var(--store-border);
+        position: relative;
+    }
+    footer::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--store-gradient);
+    }
+    footer a {
+        color: var(--store-text-secondary) !important;
+        transition: color 0.2s ease;
+    }
+    footer a:hover {
+        color: var(--store-primary) !important;
+    }
+    .footer-title, footer h3, footer h4 {
+        color: var(--store-text) !important;
+        position: relative;
+        display: inline-block;
+    }
+    .footer-title::after, footer h3::after, footer h4::after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 0;
+        width: 30px;
+        height: 3px;
+        background: var(--store-gradient);
+        border-radius: 2px;
+    }
+    .footer-social a {
+        background: var(--store-primary-light);
+        color: var(--store-primary) !important;
+        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+    }
+    .footer-social a:hover {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        transform: translateY(-4px) rotate(5deg);
+        box-shadow: 0 8px 20px var(--store-primary-medium);
+    }
+    .footer-bottom {
+        border-top: 1px solid var(--store-border);
+    }
+    
+    /* Filters & Sidebar - Enhanced */
+    .filter-sidebar, .sidebar {
+        background: var(--store-card-bg);
+        border: 1px solid var(--store-border);
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .filter-group-title, .filter-title {
+        color: var(--store-text);
+        font-weight: 600;
+        position: relative;
+        padding-left: 12px;
+    }
+    .filter-group-title::before, .filter-title::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 4px;
+        height: 20px;
+        background: var(--store-gradient);
+        border-radius: 2px;
+    }
+    .size-btn, .filter-btn {
+        background: var(--store-bg);
+        color: var(--store-text);
+        border: 1px solid var(--store-border);
+        border-radius: 8px;
+        padding: 10px 16px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    .size-btn:hover, .filter-btn:hover {
+        border-color: var(--store-primary);
+        color: var(--store-primary);
+        background: var(--store-primary-light);
+    }
+    .size-btn.active, .filter-btn.active {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        border-color: transparent !important;
+        box-shadow: 0 4px 12px var(--store-primary-medium);
+    }
+    
+    /* Custom Checkbox Styling */
+    input[type='checkbox'] {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--store-border);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    input[type='checkbox']:checked {
+        background: var(--store-gradient);
+        border-color: transparent;
+    }
+    input[type='checkbox']:checked::after {
+        content: '✓';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #ffffff;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    /* Custom Radio Styling */
+    input[type='radio'] {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--store-border);
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    input[type='radio']:checked {
+        border-color: var(--store-primary);
+    }
+    input[type='radio']:checked::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 10px;
+        height: 10px;
+        background: var(--store-gradient);
+        border-radius: 50%;
+    }
+    
+    /* Promo Banner - Enhanced */
+    .promo-banner, .announcement-bar {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        position: relative;
+        overflow: hidden;
+    }
+    .promo-banner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        animation: shine 3s infinite;
+    }
+    @keyframes shine {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+    .promo-banner a, .announcement-bar a {
+        color: #ffffff !important;
+        text-decoration: underline;
+        font-weight: 600;
+    }
+    .promo-banner strong, .announcement-bar strong {
+        color: var(--store-accent) !important;
+    }
+    
+    /* Breadcrumbs */
+    .breadcrumb {
+        color: var(--store-text-secondary);
+    }
+    .breadcrumb a {
+        color: var(--store-text-secondary);
+    }
+    .breadcrumb a:hover {
+        color: var(--store-primary);
+    }
+    
+    /* Pagination - Enhanced */
+    .pagination a, .page-link {
+        color: var(--store-text);
+        border: 1px solid var(--store-border);
+        border-radius: 10px;
+        padding: 10px 16px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    .pagination a:hover, .page-link:hover {
+        background: var(--store-primary-light);
+        border-color: var(--store-primary);
+        color: var(--store-primary);
+        transform: translateY(-2px);
+    }
+    .pagination .active, .page-link.active {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        border-color: transparent !important;
+        box-shadow: 0 4px 12px var(--store-primary-medium);
+    }
+    .pagination .prev, .pagination .next {
+        font-weight: 600;
+    }
+    }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: var(--store-bg-secondary);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: var(--store-border);
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--store-primary);
+    }
+    
+    /* Selection */
+    ::selection {
+        background: var(--store-primary);
+        color: #ffffff;
+    }
+    
+    /* ========== HERO SECTION ========== */
+    .hero, .hero-section, .hero-content {
+        background: linear-gradient(135deg, var(--store-bg) 0%, var(--store-bg-secondary) 100%) !important;
+        position: relative;
+    }
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(circle at top right, var(--store-primary-light) 0%, transparent 60%);
+        pointer-events: none;
+    }
+    .hero h1, .hero-title, .hero-section h1 {
+        color: var(--store-text) !important;
+        background: var(--store-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .hero p, .hero-subtitle, .hero-section p, .hero-description {
+        color: var(--store-text-secondary) !important;
+    }
+    .hero-buttons .btn, .hero .btn, .hero-cta {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 15px var(--store-primary-medium);
+    }
+    .hero-buttons .btn:hover, .hero .btn:hover {
+        background: var(--store-gradient-accent) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px var(--store-primary-medium);
+    }
+    .hero-buttons .btn-outline, .hero .btn-secondary {
+        background: transparent !important;
+        border: 2px solid var(--store-primary) !important;
+        color: var(--store-primary) !important;
+    }
+    .hero-buttons .btn-outline:hover, .hero .btn-secondary:hover {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        border-color: transparent !important;
+    }
+    
+    /* ========== SECTION TITLES ========== */
+    .section-header, .section-title-wrapper {
+        color: var(--store-text);
+    }
+    .section-header h2, .section-title, .hot-sales h2, 
+    .featured-title, .categories-title {
+        color: var(--store-text) !important;
+        position: relative;
+        display: inline-block;
+    }
+    .section-header h2::after, .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 4px;
+        background: var(--store-gradient);
+        border-radius: 2px;
+    }
+    .section-header p, .section-subtitle, .section-description {
+        color: var(--store-text-secondary) !important;
+    }
+    
+    /* ========== PRODUCT INFO ========== */
+    .product-info, .product-details {
+        background: var(--store-card-bg);
+        color: var(--store-text);
+    }
+    .product-info h3, .product-title, .product-name {
+        color: var(--store-text) !important;
+    }
+    .product-brand, .product-category {
+        color: var(--store-text-secondary) !important;
+    }
+    .product-color {
+        color: var(--store-text-secondary) !important;
+    }
+    
+    /* ========== HOT SALES / FEATURED ========== */
+    .hot-sales, .featured-products, .best-sellers {
+        background: var(--store-bg) !important;
+    }
+    .hot-sales .section-title, .featured-products h2 {
+        color: var(--store-text) !important;
+    }
+    
+    /* ========== NEWSLETTER - Enhanced ========== */
+    .newsletter, .newsletter-section {
+        background: linear-gradient(135deg, var(--store-bg-secondary) 0%, var(--store-bg) 100%) !important;
+        border: 1px solid var(--store-border);
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+    .newsletter::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, var(--store-primary-light) 0%, transparent 60%);
+        pointer-events: none;
+    }
+    .newsletter h2, .newsletter h3, .newsletter-title {
+        color: var(--store-text) !important;
+        position: relative;
+    }
+    .newsletter p, .newsletter-description {
+        color: var(--store-text-secondary) !important;
+        position: relative;
+    }
+    .newsletter input {
+        background: var(--store-bg) !important;
+        color: var(--store-text) !important;
+        border: 2px solid var(--store-border) !important;
+        border-radius: 12px;
+        padding: 14px 20px;
+    }
+    .newsletter input:focus {
+        border-color: var(--store-primary) !important;
+        box-shadow: 0 0 0 4px var(--store-primary-light) !important;
+    }
+    .newsletter button, .newsletter-btn {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        border-radius: 12px;
+        padding: 14px 28px;
+        font-weight: 600;
+        box-shadow: 0 4px 15px var(--store-primary-medium);
+        transition: all 0.3s ease;
+    }
+    .newsletter button:hover, .newsletter-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px var(--store-primary-medium);
+    }
+    
+    /* ========== CATEGORIES - Enhanced ========== */
+    .categories, .category-section {
+        background: var(--store-bg) !important;
+    }
+    .category-card, .category-item {
+        background: var(--store-card-bg) !important;
+        border: 1px solid var(--store-border);
+        border-radius: 16px;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .category-card::before, .category-item::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--store-gradient);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+    .category-card:hover, .category-item:hover {
+        border-color: var(--store-primary);
+        transform: translateY(-6px);
+        box-shadow: 0 15px 30px var(--store-primary-light);
+    }
+    .category-card:hover::before, .category-item:hover::before {
+        transform: scaleX(1);
+    }
+    .category-name, .category-title {
+        color: var(--store-text) !important;
+        font-weight: 600;
+    }
+    
+    /* ========== BRANDS - Enhanced ========== */
+    .brands-section, .brand-list {
+        background: var(--store-bg) !important;
+    }
+    .brand-item, .brand-card {
+        background: var(--store-card-bg) !important;
+        border: 1px solid var(--store-border);
+        border-radius: 16px;
+        transition: all 0.4s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .brand-item::after, .brand-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--store-gradient);
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+    .brand-item:hover, .brand-card:hover {
+        border-color: var(--store-primary);
+        transform: translateY(-6px);
+        box-shadow: 0 12px 30px var(--store-primary-light);
+    }
+    .brand-item:hover::after, .brand-card:hover::after {
+        transform: scaleX(1);
+    }
+    .brand-name, .brand-item-name {
+        color: var(--store-text) !important;
+        font-weight: 600;
+    }
+    .brand-mega-menu {
+        background: var(--store-card-bg) !important;
+        border: 1px solid var(--store-border);
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    .brand-mega-menu .brand-item {
+        color: var(--store-text) !important;
+    }
+    
+    /* ========== DROPDOWN MENUS ========== */
+    .dropdown-menu, .mega-menu, .brand-dropdown .brand-mega-menu {
+        background: var(--store-card-bg) !important;
+        border: 1px solid var(--store-border) !important;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    .dropdown-item, .menu-item {
+        color: var(--store-text) !important;
+    }
+    .dropdown-item:hover, .menu-item:hover {
+        background: var(--store-primary-light) !important;
+        color: var(--store-primary) !important;
+    }
+    
+    /* ========== USER MENU ========== */
+    .user-menu, .user-dropdown {
+        color: var(--store-text);
+    }
+    .user-dropdown {
+        background: var(--store-card-bg) !important;
+        border: 1px solid var(--store-border) !important;
+    }
+    .user-dropdown a {
+        color: var(--store-text) !important;
+    }
+    .user-dropdown a:hover {
+        background: var(--store-primary-light) !important;
+        color: var(--store-primary) !important;
+    }
+    .user-name {
+        color: var(--store-text) !important;
+    }
+    
+    /* ========== SEARCH ========== */
+    .nav-search input, .search-input {
+        background: var(--store-bg-secondary) !important;
+        color: var(--store-text) !important;
+        border: 1px solid var(--store-border) !important;
+    }
+    .nav-search input::placeholder, .search-input::placeholder {
+        color: var(--store-text-secondary) !important;
+    }
+    .nav-search input:focus, .search-input:focus {
+        border-color: var(--store-primary) !important;
+        box-shadow: 0 0 0 3px var(--store-primary-light) !important;
+    }
+    
+    /* ========== TOAST NOTIFICATIONS ========== */
+    .toast, .notification {
+        background: var(--store-card-bg) !important;
+        color: var(--store-text) !important;
+        border: 1px solid var(--store-border);
+    }
+    .toast-success {
+        border-left: 4px solid #22c55e !important;
+    }
+    .toast-error {
+        border-left: 4px solid #ef4444 !important;
+    }
+    
+    /* ========== MODALS ========== */
+    .modal, .modal-content {
+        background: var(--store-card-bg) !important;
+        color: var(--store-text) !important;
+    }
+    .modal-header, .modal-footer {
+        border-color: var(--store-border) !important;
+    }
+    .modal-title {
+        color: var(--store-text) !important;
+    }
+    
+    /* ========== TABLES ========== */
+    table, .table {
+        color: var(--store-text);
+    }
+    th {
+        background: var(--store-bg-secondary) !important;
+        color: var(--store-text) !important;
+        border-color: var(--store-border) !important;
+    }
+    td {
+        border-color: var(--store-border) !important;
+    }
+    tr:hover {
+        background: var(--store-primary-light) !important;
+    }
+    
+    /* ========== EMPTY STATES ========== */
+    .empty-state, .no-products, .empty-cart {
+        color: var(--store-text-secondary);
+    }
+    .empty-state i, .empty-state svg {
+        color: var(--store-border);
+    }
+    
+    /* ========== LOADING STATES ========== */
+    .loading, .spinner {
+        border-color: var(--store-border);
+        border-top-color: var(--store-primary);
+    }
+    
+    /* ========== CAROUSEL ========== */
+    .carousel-controls button, .carousel-nav button {
+        background: var(--store-card-bg) !important;
+        color: var(--store-text) !important;
+        border: 1px solid var(--store-border);
+    }
+    .carousel-controls button:hover {
+        background: var(--store-primary) !important;
+        color: #ffffff !important;
+    }
+    .carousel-dots .dot {
+        background: var(--store-border);
+    }
+    .carousel-dots .dot.active {
+        background: var(--store-primary);
+    }
+    
+    /* ========== ICONS ========== */
+    .fa, .fas, .far, .fab, i {
+        color: inherit;
+    }
+    
+    /* ========== MISC OVERRIDES ========== */
+    hr {
+        border-color: var(--store-border);
+    }
+    blockquote {
+        border-left-color: var(--store-primary);
+        color: var(--store-text-secondary);
+    }
+    code, pre {
+        background: var(--store-bg-secondary);
+        color: var(--store-text);
+    }
+    
+    /* ========== ACCENT HIGHLIGHTS ========== */
+    .accent-border {
+        border-left: 4px solid var(--store-accent) !important;
+    }
+    .accent-text {
+        color: var(--store-accent) !important;
+    }
+    .accent-bg {
+        background: var(--store-accent) !important;
+    }
+    
+    /* ========== SPECIAL PROMO CARDS ========== */
+    .promo-card, .special-offer {
+        background: var(--store-gradient) !important;
+        color: #ffffff !important;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+    .promo-card::before, .special-offer::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 50%);
+    }
+    
+    /* ========== FEATURE ICONS ========== */
+    .feature-icon, .benefit-icon {
+        width: 60px;
+        height: 60px;
+        background: var(--store-gradient) !important;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-size: 1.5rem;
+        box-shadow: 0 8px 20px var(--store-primary-medium);
+    }
+    
+    /* ========== PRICE TAGS ========== */
+    .discount-tag, .sale-tag {
+        background: linear-gradient(135deg, var(--store-secondary), var(--store-accent)) !important;
+        color: #ffffff !important;
+        padding: 4px 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    /* ========== DIVIDERS ========== */
+    .gradient-divider {
+        height: 4px;
+        background: var(--store-gradient);
+        border-radius: 2px;
+        border: none;
+    }
+    
+    /* ========== GLOW EFFECTS ========== */
+    .glow-primary {
+        box-shadow: 0 0 30px var(--store-primary-medium);
+    }
+    .glow-accent {
+        box-shadow: 0 0 30px rgba(201, 168, 124, 0.4);
+    }
+    
+    /* ========== ANIMATED GRADIENT TEXT ========== */
+    .gradient-text, .highlight-text {
+        background: var(--store-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    /* ========== SKELETON LOADING ========== */
+    .skeleton {
+        background: linear-gradient(90deg, 
+            var(--store-border) 25%, 
+            var(--store-bg-secondary) 50%, 
+            var(--store-border) 75%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.5s infinite;
+    }
+    @keyframes skeleton-loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+    
+    /* ========== FLOATING ANIMATION ========== */
+    .floating {
+        animation: float 6s ease-in-out infinite;
+    }
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+    
+    /* ========== RESPONSIVE NAV ========== */
+    @media (max-width: 768px) {
+        .nav-links {
+            background: var(--store-nav-bg) !important;
+            border-top: 1px solid var(--store-border);
+        }
+        .nav-links.show {
+            background: var(--store-card-bg) !important;
+        }
+    }
+    </style>    <link rel="stylesheet" href="asset/style/product-details.css">
+</head>
+
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="pd-nav">
+        <div class="pd-nav-container">
+            <a href="user-interface.php" class="pd-nav-brand">
+                                    <i class="fas fa-shoe-prints"></i>
+                    <span>Shoe Takels</span>
+                            </a>
+
+            <ul class="pd-nav-links">
+                <li><a href="index.php">Home</a></li>
+                <li><a href="shoes.php">Shop</a></li>
+                <li><a href="brand.php">Brands</a></li>
+                <li><a href="best-seller.php">Best Sellers</a></li>
+            </ul>
+
+            <div class="pd-nav-actions">
+                <a href="cart.php" class="pd-nav-btn" title="Cart">
+                    <i class="fas fa-shopping-bag"></i>
+                                    </a>
+                <button class="pd-menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="pd-main">
+        <!-- Breadcrumb -->
+        <nav class="pd-breadcrumb">
+            <a href="index.php">Home</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="shoes.php">Shop</a>
+            <i class="fas fa-chevron-right"></i>
+            <span class="current">SAMBA OG SHOE</span>
+        </nav>
+
+        <!-- Product Grid -->
+        <div class="pd-product-grid">
+            <!-- Gallery -->
+            <div class="pd-gallery">
+                                <div class="pd-gallery-main">
+                    <span class="pd-gallery-badge">New Arrival</span>
+                    <img id="mainImage" 
+                         src="upload\product-image\photo_2025-11-19_21-38-11.jpg" 
+                         alt="SAMBA OG SHOE">
+                    <div class="pd-gallery-actions">
+                        <button class="pd-gallery-btn" title="Zoom">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="pd-gallery-thumbs" id="thumbnailList">
+                                            <div class="pd-thumb active"
+                             data-image="upload\product-image\photo_2025-11-19_21-38-11.jpg">
+                            <img src="upload\product-image\photo_2025-11-19_21-38-11.jpg" alt="Thumbnail 1">
+                        </div>
+                                            <div class="pd-thumb "
+                             data-image="upload\product-image\photo_2025-11-19_21-38-11 (2).jpg">
+                            <img src="upload\product-image\photo_2025-11-19_21-38-11 (2).jpg" alt="Thumbnail 2">
+                        </div>
+                                            <div class="pd-thumb "
+                             data-image="upload\product-image\photo_2025-11-19_21-38-11 (3).jpg">
+                            <img src="upload\product-image\photo_2025-11-19_21-38-11 (3).jpg" alt="Thumbnail 3">
+                        </div>
+                                            <div class="pd-thumb "
+                             data-image="upload\product-image\photo_2025-11-19_21-38-11 (4).jpg">
+                            <img src="upload\product-image\photo_2025-11-19_21-38-11 (4).jpg" alt="Thumbnail 4">
+                        </div>
+                                            <div class="pd-thumb "
+                             data-image="upload\product-image\photo_2025-11-19_21-38-11 (5).jpg">
+                            <img src="upload\product-image\photo_2025-11-19_21-38-11 (5).jpg" alt="Thumbnail 5">
+                        </div>
+                                    </div>
+            </div>
+
+            <!-- Product Info -->
+            <div class="pd-info">
+                <span class="pd-brand">
+                    <i class="fas fa-award"></i>
+                    Adidas                </span>
+
+                <h1 class="pd-title">SAMBA OG SHOE</h1>
+
+                <div class="pd-rating">
+                    <div class="pd-rating-stars">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star-half-alt"></i>
+                    </div>
+                    <span class="pd-rating-text">4.5 (128 reviews)</span>
+                </div>
+
+                <div class="pd-price-box">
+                    <span class="pd-price-current">
+                        ₱6,800.00                    </span>
+                                    </div>
+
+                
+                <!-- AI Description -->
+                <div class="pd-description">
+                    <div class="pd-description-header">
+                        <span class="pd-description-title">
+                            <i class="fas fa-align-left"></i>
+                            Product Description
+                        </span>
+                        <button class="pd-ai-btn" id="generateDescBtn" title="Generate description with AI">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                            AI Generate
+                        </button>
+                    </div>
+                    <p class="pd-description-content" id="productDesc">
+                        SAMBA OG SHOE — a comfortable shoe with reliable cushioning and a durable sole.                    </p>
+                </div>
+
+                                    <!-- Variant Selectors -->
+                    <div class="pd-variants">
+                        
+                        <!-- Size Selector -->
+                        <div class="pd-variant-group">
+                            <label class="pd-variant-label">
+                                <i class="fas fa-ruler-horizontal"></i>
+                                Select Size
+                                <span class="hint">— Size Guide</span>
+                            </label>
+                            <div class="pd-sizes" id="sizeOptions">
+                                                                    <button class="pd-size-btn" data-size="39">
+                                        39                                    </button>
+                                                                    <button class="pd-size-btn" data-size="40">
+                                        40                                    </button>
+                                                            </div>
+                        </div>
+
+                        <!-- Color Selector -->
+                        <div class="pd-variant-group">
+                            <label class="pd-variant-label">
+                                <i class="fas fa-palette"></i>
+                                Select Color
+                            </label>
+                            <div class="pd-colors" id="colorOptions">
+                                                                    <div class="pd-color-option">
+                                        <button class="pd-color-btn"
+                                                data-color="Green"
+                                                title="Green"
+                                                style="background-color: Green;">
+                                        </button>
+                                        <span class="pd-color-name">Green</span>
+                                    </div>
+                                                                    <div class="pd-color-option">
+                                        <button class="pd-color-btn"
+                                                data-color="White"
+                                                title="White"
+                                                style="background-color: White;">
+                                        </button>
+                                        <span class="pd-color-name">White</span>
+                                    </div>
+                                                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Purchase Box -->
+                    <div class="pd-purchase" id="variantInfo">
+                        <div class="pd-purchase-price" id="variantPrice">₱0.00</div>
+                        <div class="pd-purchase-stock" id="variantStock">
+                            <i class="fas fa-circle"></i>
+                            Select size and color
+                        </div>
+
+                        <div class="pd-quantity-row">
+                            <span class="pd-quantity-label">Quantity:</span>
+                            <div class="pd-quantity-control">
+                                <button type="button" id="qty-decrease" class="pd-qty-btn">−</button>
+                                <input type="number" id="quantity" class="pd-qty-input" value="1" min="1" max="10">
+                                <button type="button" id="qty-increase" class="pd-qty-btn">+</button>
+                            </div>
+                        </div>
+
+                        <button class="pd-add-cart-btn" id="addToCartBtn" data-variant-id="">
+                            <i class="fas fa-shopping-bag"></i>
+                            Add to Cart
+                        </button>
+
+                        <div class="pd-purchase-secondary">
+                            <button class="pd-secondary-btn">
+                                <i class="far fa-heart"></i>
+                                Wishlist
+                            </button>
+                            <button class="pd-secondary-btn">
+                                <i class="fas fa-share-alt"></i>
+                                Share
+                            </button>
+                        </div>
+                    </div>
+                            </div>
+        </div>
+
+        <!-- Features -->
+        <section class="pd-features">
+            <div class="pd-feature">
+                <div class="pd-feature-icon">
+                    <i class="fas fa-truck-fast"></i>
+                </div>
+                <h3 class="pd-feature-title">Free Shipping</h3>
+                <p class="pd-feature-text">Free delivery on orders over ₱2,500</p>
+            </div>
+            <div class="pd-feature">
+                <div class="pd-feature-icon">
+                    <i class="fas fa-rotate-left"></i>
+                </div>
+                <h3 class="pd-feature-title">Easy Returns</h3>
+                <p class="pd-feature-text">30-day hassle-free return policy</p>
+            </div>
+            <div class="pd-feature">
+                <div class="pd-feature-icon">
+                    <i class="fas fa-shield-check"></i>
+                </div>
+                <h3 class="pd-feature-title">Secure Payment</h3>
+                <p class="pd-feature-text">100% secure payment methods</p>
+            </div>
+            <div class="pd-feature">
+                <div class="pd-feature-icon">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <h3 class="pd-feature-title">24/7 Support</h3>
+                <p class="pd-feature-text">Dedicated customer service team</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <i class="fas fa-shoe-prints"></i>
+                        Shoe Takels                    </div>
+                    <p class="footer-tagline">Premium footwear for the modern lifestyle. Quality, comfort, and style combined.</p>
+                    <div class="footer-social">
+                                                <a href="https://facebook.com" target="_blank"><i class="fab fa-facebook-f"></i></a>
+                                                                        <a href="https://instagram.com" target="_blank"><i class="fab fa-instagram"></i></a>
+                                                                        <a href="https://twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+                                                                        <a href="https://tiktok.com" target="_blank"><i class="fab fa-tiktok"></i></a>
+                                            </div>
+                </div>
+                <div class="footer-column">
+                    <h4>Shop</h4>
+                    <ul>
+                        <li><a href="shoes.php">All Shoes</a></li>
+                        <li><a href="brand.php">Brands</a></li>
+                        <li><a href="best-seller.php">Best Sellers</a></li>
+                        <li><a href="#">New Arrivals</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Support</h4>
+                    <ul>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">FAQs</a></li>
+                        <li><a href="#">Shipping Info</a></li>
+                        <li><a href="#">Size Guide</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Company</h4>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Press</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                        <li><a href="#">Returns Policy</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p class="footer-copyright">© 2025 Shoe Takels. All rights reserved.</p>
+                <div class="footer-payments">
+                    <i class="fab fa-cc-visa"></i>
+                    <i class="fab fa-cc-mastercard"></i>
+                    <i class="fab fa-cc-paypal"></i>
+                    <i class="fab fa-google-pay"></i>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        const variantMap = {"39|Green":{"variant_id":10,"price":"6800.00","stock":2,"size":"39","color":"Green"},"40|White":{"variant_id":11,"price":"6800.00","stock":1,"size":"40","color":"White"}};
+        const colorToImages = {"Green":["upload\\product-image\\photo_2025-11-19_21-38-11.jpg","upload\\product-image\\photo_2025-11-19_21-38-11 (2).jpg","upload\\product-image\\photo_2025-11-19_21-38-11 (3).jpg","upload\\product-image\\photo_2025-11-19_21-38-11 (4).jpg","upload\\product-image\\photo_2025-11-19_21-38-11 (5).jpg"],"White":["upload\\product-image\\photo_2025-11-19_21-38-12.jpg","upload\\product-image\\photo_2025-11-19_21-38-11 (6).jpg","upload\\product-image\\photo_2025-11-19_21-38-11 (7).jpg","upload\\product-image\\photo_2025-11-19_21-38-12 (2).jpg","upload\\product-image\\photo_2025-11-19_21-38-12 (3).jpg"]};
+        let selectedSize = null;
+        let selectedColor = null;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialColor = urlParams.get('color');
+
+        function updateVariantInfo() {
+            if (!selectedSize || !selectedColor) {
+                document.getElementById('variantInfo').classList.remove('show');
+                return;
+            }
+
+            const key = selectedSize + "|" + selectedColor;
+            const variant = variantMap[key];
+
+            if (!variant) {
+                document.getElementById('variantInfo').classList.remove('show');
+                return;
+            }
+
+            // Price
+            document.getElementById('variantPrice').textContent = '₱' + parseFloat(variant.price).toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+            // Stock state
+            const stock = parseInt(variant.stock) || 0;
+            const stockEl = document.getElementById('variantStock');
+
+            if (stock > 10) {
+                stockEl.innerHTML = '<i class="fas fa-check-circle"></i> In Stock';
+                stockEl.className = "pd-purchase-stock in-stock";
+            } else if (stock > 0) {
+                stockEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Only ' + stock + ' left';
+                stockEl.className = "pd-purchase-stock low-stock";
+            } else {
+                stockEl.innerHTML = '<i class="fas fa-times-circle"></i> Out of Stock';
+                stockEl.className = "pd-purchase-stock out-of-stock";
+            }
+
+            const addBtn = document.getElementById('addToCartBtn');
+            addBtn.dataset.variantId = variant.variant_id;
+            addBtn.disabled = stock === 0;
+
+            document.getElementById('variantInfo').classList.add('show');
+        }
+
+        // Size selector
+        document.querySelectorAll('.pd-size-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                selectedSize = this.dataset.size;
+                document.querySelectorAll('.pd-size-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+
+                document.querySelectorAll('.pd-color-btn').forEach(b => {
+                    const color = b.dataset.color;
+                    b.disabled = !(selectedSize + "|" + color in variantMap);
+                });
+
+                updateVariantInfo();
+            });
+        });
+
+        // Color selector
+        document.querySelectorAll('.pd-color-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                selectedColor = this.dataset.color;
+                document.querySelectorAll('.pd-color-btn').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+
+                // Update gallery images
+                const galleryImages = colorToImages[selectedColor] || [];
+                const mainImage = document.getElementById('mainImage');
+                const thumbnailList = document.getElementById('thumbnailList');
+
+                if (galleryImages.length > 0) {
+                    mainImage.src = galleryImages[0];
+                } else {
+                    mainImage.src = 'upload/product-image/placeholder.png';
+                }
+
+                // Update thumbnails
+                let thumbsHtml = '';
+                galleryImages.forEach((img, idx) => {
+                    thumbsHtml += `<div class="pd-thumb ${idx === 0 ? 'active' : ''}" data-image="${img}">
+                        <img src="${img}" alt="Thumbnail ${idx + 1}">
+                    </div>`;
+                });
+                thumbnailList.innerHTML = thumbsHtml;
+
+                // Re-attach click events to thumbnails
+                thumbnailList.querySelectorAll('.pd-thumb').forEach(thumb => {
+                    thumb.addEventListener('click', function () {
+                        thumbnailList.querySelectorAll('.pd-thumb').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        mainImage.src = this.dataset.image;
+                    });
+                });
+
+                updateVariantInfo();
+            });
+        });
+
+        // Thumbnail click
+        document.querySelectorAll('.pd-thumb').forEach(thumb => {
+            thumb.addEventListener('click', function () {
+                document.querySelectorAll('.pd-thumb').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('mainImage').src = this.dataset.image;
+            });
+        });
+
+        // Quantity controls
+        const qtyInput = document.getElementById('quantity');
+        const qtyDec = document.getElementById('qty-decrease');
+        const qtyInc = document.getElementById('qty-increase');
+
+        function clampQuantity() {
+            if (!qtyInput) return 1;
+            let v = parseInt(qtyInput.value) || 1;
+            const min = parseInt(qtyInput.getAttribute('min')) || 1;
+            const max = parseInt(qtyInput.getAttribute('max')) || 10;
+            if (v < min) v = min;
+            if (v > max) v = max;
+            qtyInput.value = v;
+            return v;
+        }
+
+        qtyDec?.addEventListener('click', () => {
+            const cur = clampQuantity();
+            qtyInput.value = Math.max(cur - 1, 1);
+        });
+
+        qtyInc?.addEventListener('click', () => {
+            const cur = clampQuantity();
+            qtyInput.value = Math.min(cur + 1, 10);
+        });
+
+        qtyInput?.addEventListener('change', clampQuantity);
+
+        // Add to cart
+        document.getElementById('addToCartBtn')?.addEventListener('click', async function (e) {
+            e.preventDefault();
+            const variantId = this.dataset.variantId;
+            const quantity = parseInt(document.getElementById('quantity').value) || 1;
+
+            if (!variantId) {
+                alert('Please select size and color');
+                return;
+            }
+
+            const btn = this;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
+            try {
+                const res = await fetch("partials/add-to-cart.php", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: `variant_id=${encodeURIComponent(variantId)}&quantity=${encodeURIComponent(quantity)}`
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    btn.innerHTML = '<i class="fas fa-check"></i> Added!';
+                    setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+                    
+                    if (data.cart_count !== undefined) {
+                        const badge = document.getElementById('cartBadge');
+                        if (badge) {
+                            badge.textContent = data.cart_count;
+                        } else {
+                            const cartBtn = document.querySelector('.pd-nav-btn');
+                            if (cartBtn) {
+                                const newBadge = document.createElement('span');
+                                newBadge.className = 'pd-cart-badge';
+                                newBadge.id = 'cartBadge';
+                                newBadge.textContent = data.cart_count;
+                                cartBtn.appendChild(newBadge);
+                            }
+                        }
+                    }
+                } else {
+                    alert(data.message || 'Failed to add to cart');
+                    btn.innerHTML = originalText;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Failed to add to cart');
+                btn.innerHTML = originalText;
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // AI Description Generator
+        document.getElementById('generateDescBtn')?.addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.innerHTML;
+            const descEl = document.getElementById('productDesc');
+            
+            btn.disabled = true;
+            btn.classList.add('loading');
+            btn.innerHTML = '<i class="fas fa-spinner"></i> Generating...';
+            
+            try {
+                const response = await fetch('api/gemini_generate_description.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        product_id: 8,
+                        product_name: "SAMBA OG SHOE",
+                        brand_name: "Adidas",
+                        category: "UNISEX"                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.description) {
+                    descEl.innerHTML = data.description.replace(/\n/g, '<br>');
+                    btn.innerHTML = '<i class="fas fa-check"></i> Done!';
+                    setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+                } else {
+                    throw new Error(data.message || 'Failed to generate description');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error: ' + error.message);
+                btn.innerHTML = originalText;
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('loading');
+            }
+        });
+
+        // Mobile menu toggle
+        document.getElementById('menuToggle')?.addEventListener('click', function () {
+            document.querySelector('.pd-nav-links')?.classList.toggle('show');
+        });
+
+        // Initialize: click first color on load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (initialColor) {
+                const colorButton = document.querySelector(`.pd-color-btn[data-color="${CSS.escape(initialColor)}"]`);
+                if (colorButton && !colorButton.disabled) {
+                    colorButton.click();
+                    return;
+                }
+            }
+            const firstColorButton = document.querySelector('.pd-color-btn:not(:disabled)');
+            if (firstColorButton) {
+                firstColorButton.click();
+            }
+        });
+    </script>
+</body>
+</html>

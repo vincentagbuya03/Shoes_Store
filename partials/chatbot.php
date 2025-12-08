@@ -5,13 +5,13 @@
     <!-- Floating Chat Button -->
     <button id="chatbot-toggle" class="chatbot-toggle" aria-label="Open chat assistant">
         <span class="chatbot-icon-open">
-            <svg xmlns="http://www. w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
-                <path d="M12 2C6.48 2 2 6.48 2 12c0 1.85. 5 3.58 1.36 5.07L2 22l4.93-1.36C8.42 21.5 10.15 22 12 22c5.52 0 10-4.48 10-10S17. 52 2 12 2zm-1 15h-2v-2h2v2zm2. 07-7.75l-. 9. 92C11.45 10.9 11 11.5 11 13h-2v-. 5c0-1.1.45-2. 1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1. 41 0-1. 1-.9-2-2-2s-2 .9-2 2H6c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+                <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 2.98.97 4.29L2 22l5.71-.97C9.02 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm-2 13.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2-4.5H8c-.55 0-1-.45-1-1s.45-1 1-1h8c.55 0 1 .45 1 1s-.45 1-1 1z"/>
             </svg>
         </span>
         <span class="chatbot-icon-close">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6. 41 19 12 13.41 17.59 19 19 17. 59 13.41 12z"/>
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
             </svg>
         </span>
         <span class="chatbot-badge" id="chatbot-badge" style="display:none;">1</span>
@@ -23,7 +23,7 @@
             <div class="chatbot-header-info">
                 <div class="chatbot-avatar">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14. 2c-2. 5 0-4.71-1. 28-6-3. 22. 03-1.99 4-3.08 6-3. 08 1.99 0 5. 97 1.09 6 3. 08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                        <path d="M12 2C6.48 2 2 6.48 2 12c0 1.54.36 2.98.97 4.29L2 22l5.71-.97C9.02 21.64 10.46 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm-2 13.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm2-4.5H8c-.55 0-1-.45-1-1s.45-1 1-1h8c.55 0 1 .45 1 1s-.45 1-1 1z"/>
                     </svg>
                 </div>
                 <div class="chatbot-header-text">
@@ -32,7 +32,7 @@
                 </div>
             </div>
             <button id="chatbot-minimize" class="chatbot-minimize" aria-label="Minimize chat">
-                <svg xmlns="http://www. w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
                     <path d="M19 13H5v-2h14v2z"/>
                 </svg>
             </button>
@@ -54,8 +54,8 @@
             <div class="chatbot-input-wrapper">
                 <input type="text" id="chatbot-input" placeholder="Ask me anything about shoes..." autocomplete="off" required>
                 <button type="submit" id="chatbot-send" aria-label="Send message">
-                    <svg xmlns="http://www.w3. org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
-                        <path d="M2. 01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                     </svg>
                 </button>
             </div>
@@ -67,5 +67,24 @@
     </div>
 </div>
 
-<link rel="stylesheet" href="asset/style/chatbot.css">
-<script src="asset/script/chatbot.js"></script>
+<?php
+// Get base path for assets - works on both localhost and shared hosting
+$chatbot_base = '';
+
+// Simple approach: check current script location
+$script_path = $_SERVER['SCRIPT_NAME'] ?? '';
+
+// If we're in a subdirectory like /Shoes_Store/index.php
+if (strpos($script_path, '/Shoes_Store/') !== false) {
+    // We're in Shoes_Store subdirectory (localhost)
+    $chatbot_base = '/Shoes_Store/';
+} else {
+    // We're at root or in another directory (hosting)
+    $chatbot_base = '/';
+}
+
+// Debug: log the determined base path
+// error_log('Chatbot base path: ' . $chatbot_base . ' (script: ' . $script_path . ')');
+?>
+<link rel="stylesheet" href="<?php echo $chatbot_base; ?>asset/style/chatbot.css?v=<?php echo time(); ?>">
+<script src="<?php echo $chatbot_base; ?>asset/script/chatbot.js?v=<?php echo time(); ?>" defer></script>

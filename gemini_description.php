@@ -4,12 +4,32 @@
 // Fixed version with proper API call and fallback only on failure
 // -----------------------------------------------------------------------------
 
+// Load API key from config
+function get_gemini_api_key(): ?string {
+    // First try the config file
+    $config_path = __DIR__ . '/config/gemini.local.php';
+    if (file_exists($config_path)) {
+        $config = require $config_path;
+        if (!empty($config['api_key'])) {
+            return $config['api_key'];
+        }
+    }
+    
+    // Fallback to environment variable
+    $env_key = getenv('GEMINI_API_KEY');
+    if ($env_key && $env_key !== 'YOUR_API_KEY_HERE') {
+        return $env_key;
+    }
+    
+    return null;
+}
+
 // -------------------------
 // Gemini API Call
 // -------------------------
 function gemini_generate_content(string $prompt): ?string {
-    $api_key = getenv('GEMINI_API_KEY') ?: null;
-    if (!$api_key || $api_key === 'YOUR_API_KEY_HERE') {
+    $api_key = get_gemini_api_key();
+    if (!$api_key) {
         error_log('[gemini] GEMINI_API_KEY not set; skipping LLM call');
         return null;
     }
@@ -96,7 +116,7 @@ function gemini_generate_content(string $prompt): ?string {
 // -------------------------
 function generate_product_description(array $product, string $lang = 'en'): string {
     $product_id = $product['product_id'] ?? mt_rand(1000,9999);
-    $cache_dir = __DIR__ . '/../upload/product-descriptions/';
+    $cache_dir = __DIR__ . '/upload/product-descriptions/';
     if (!is_dir($cache_dir)) @mkdir($cache_dir, 0755, true);
     $cache_file = $cache_dir . "{$product_id}-long-{$lang}.txt";
 

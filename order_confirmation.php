@@ -41,7 +41,7 @@ if ($pstmt) {
 <head>
     <meta charset="utf-8">
     <title>Order Confirmation</title>
-    <link rel="stylesheet" href="asset/style/index.css">
+    <link rel="stylesheet" href="asset/style/animations.css">
     <?php echo getStoreThemeCSS(); ?>
     <style>
         body { font-family: var(--store-font, Arial, Helvetica, sans-serif); padding:24px; background: var(--store-bg); color: var(--store-text); }

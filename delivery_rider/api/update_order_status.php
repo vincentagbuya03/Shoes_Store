@@ -10,8 +10,24 @@ if (!isset($_SESSION['rider_id'])) {
 
 $rider_id = (int)$_SESSION['rider_id'];
 
-$order_id = isset($_POST['order_id']) ? (int)$_POST['order_id'] : 0;
-$action = isset($_POST['action']) ? trim($_POST['action']) : '';
+// Handle both JSON and form-encoded POST data
+$order_id = 0;
+$action = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    
+    if (stripos($contentType, 'application/json') !== false) {
+        // JSON payload
+        $input = json_decode(file_get_contents('php://input'), true);
+        $order_id = isset($input['order_id']) ? (int)$input['order_id'] : 0;
+        $action = isset($input['action']) ? trim($input['action']) : '';
+    } else {
+        // Form-encoded payload
+        $order_id = isset($_POST['order_id']) ? (int)$_POST['order_id'] : 0;
+        $action = isset($_POST['action']) ? trim($_POST['action']) : '';
+    }
+}
 
 if ($order_id <= 0 || $action === '') {
     echo json_encode(['success' => false, 'message' => 'Invalid parameters']);

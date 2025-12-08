@@ -1,23 +1,24 @@
 <?php
-// product-details.php
+
+require_once 'db_connection.php';
+require_once 'inc/store_settings.php';
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 session_start();
 
-// Database connection
-$servername = "localhost";
-$username   = "root";
-$password   = "vincentagbuya123";
-$database   = "shoestore";
-
-$conn = new mysqli($servername, $username, $password, $database);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+$customer_name = $_SESSION['customer_name'] ?? 'Customer';
+$cart_count = 0;
+if (isset($_SESSION['customer_id'])) {
+    $cid = (int)$_SESSION['customer_id'];
+    $cart_count_query = $conn->prepare('SELECT COUNT(*) as total FROM cart WHERE customer_id = ?');
+    $cart_count_query->bind_param('i', $cid);
+    $cart_count_query->execute();
+    $cart_count_result = $cart_count_query->get_result();
+    if ($cart_count_result && ($row = $cart_count_result->fetch_assoc())) {
+        $cart_count = (int)($row['total'] ?? 0);
+    }
+    $cart_count_query->close();
 }
-$conn->set_charset("utf8mb4");
-
-// Load store settings early (before conn->close)
-require_once 'inc/store_settings.php';
 
 // Load the Gemini description helper from `inc/` if present; fall back to project root.
 $helper_included = false;
@@ -108,7 +109,7 @@ foreach ($variants as $v) {
 // Count how many of this product are in the cart for this user
 $cart_count = 0;
 if (isset($_SESSION['customer_id'])) {
-    $cart_conn = new mysqli($servername, $username, $password, $database);
+    $cart_conn = new mysqli($servername, $username, $password, $dbname);
     if (!$cart_conn->connect_error) {
         $cart_stmt = $cart_conn->prepare("SELECT SUM(c.quantity) as total FROM cart c INNER JOIN product_variant v ON c.variant_id = v.variant_id WHERE c.customer_id = ? AND v.product_id = ?");
         $cart_stmt->bind_param('ii', $_SESSION['customer_id'], $product_id);
@@ -155,7 +156,14 @@ if (function_exists('generate_fallback_description')) {
     }
 }
 
-$conn->close();
+// Don't close $conn here - it's needed for the brand dropdown in navigation
+// $conn->close(); // Moved to end of file
+
+// Get store logo
+$store_logo = '';
+if (!empty($store_settings['store_logo'])) {
+    $store_logo = $store_settings['store_logo'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -165,1205 +173,139 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($product['name'], ENT_QUOTES); ?> - <?php echo htmlspecialchars($store_settings['store_name']); ?></title>
     <link rel="icon" type="image/x-icon" href="upload/picture/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="asset/style/beautiful-ui.css">
+    <link rel="stylesheet" href="asset/style/animations.css">
     <?php echo getStoreThemeCSS(); ?>
-
+    <link rel="stylesheet" href="asset/style/product-details.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-        :root {
-            --primary: #0f0f0f;
-            --secondary: #1a1a1a;
-            --accent: #c9a87c;
-            --accent-hover: #b8956a;
-            --accent-light: rgba(201, 168, 124, 0.1);
-            --accent-glow: rgba(201, 168, 124, 0.3);
-            --white: #ffffff;
-            --off-white: #fafafa;
-            --gray-50: #f9fafb;
-            --gray-100: #f3f4f6;
-            --gray-200: #e5e7eb;
-            --gray-300: #d1d5db;
-            --gray-400: #9ca3af;
-            --gray-500: #6b7280;
-            --gray-600: #4b5563;
-            --gray-700: #374151;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-            --radius-sm: 8px;
-            --radius: 12px;
-            --radius-lg: 16px;
-            --radius-xl: 24px;
-            --transition: all 0.2s ease;
-            --transition-slow: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--white);
-            color: var(--primary);
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* ========== NAVIGATION ========== */
-        .navbar {
-            background: var(--white);
-            border-bottom: 1px solid var(--gray-200);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            backdrop-filter: blur(20px);
-            background: rgba(255, 255, 255, 0.95);
-        }
-
-        .navbar-container {
-            max-width: 1440px;
-            margin: 0 auto;
-            padding: 0 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 72px;
-        }
-
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            text-decoration: none;
-            color: var(--primary);
-        }
-
-        .navbar-brand i {
-            font-size: 1.5rem;
-            color: var(--accent);
-        }
-
-        .navbar-brand span {
-            font-size: 1.5rem;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
-
-        .navbar-nav {
-            display: flex;
-            list-style: none;
-            gap: 0.5rem;
-        }
-
-        .navbar-nav a {
-            text-decoration: none;
-            color: var(--gray-600);
-            font-weight: 500;
-            font-size: 0.95rem;
-            padding: 0.625rem 1rem;
-            border-radius: var(--radius-sm);
-            transition: var(--transition);
-        }
-
-        .navbar-nav a:hover {
-            color: var(--primary);
-            background: var(--gray-100);
-        }
-
-        .navbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .cart-btn {
-            position: relative;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--gray-100);
-            border: none;
-            border-radius: var(--radius);
-            cursor: pointer;
-            transition: var(--transition);
-            color: var(--primary);
-            font-size: 1.25rem;
-        }
-
-        .cart-btn:hover {
-            background: var(--gray-200);
-            transform: translateY(-2px);
-        }
-
-        .cart-badge {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            background: var(--accent);
-            color: var(--white);
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            font-weight: 700;
-            border: 2px solid var(--white);
-        }
-
-        .menu-toggle {
-            display: none;
-            width: 44px;
-            height: 44px;
-            align-items: center;
-            justify-content: center;
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--primary);
-        }
-
-        /* ========== MAIN CONTAINER ========== */
-        .main-container {
-            max-width: 1440px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        /* ========== BREADCRUMB ========== */
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 2rem;
-            font-size: 0.875rem;
-            color: var(--gray-500);
-        }
-
-        .breadcrumb a {
-            color: var(--gray-500);
-            text-decoration: none;
-            transition: var(--transition);
-        }
-
-        .breadcrumb a:hover {
-            color: var(--accent);
-        }
-
-        .breadcrumb i {
-            font-size: 0.625rem;
-            color: var(--gray-400);
-        }
-
-        .breadcrumb .current {
-            color: var(--primary);
-            font-weight: 500;
-        }
-
-        /* ========== PRODUCT SECTION ========== */
-        .product-section {
-            display: grid;
-            grid-template-columns: 1.1fr 1fr;
-            gap: 4rem;
-            margin-bottom: 4rem;
-        }
-
-        /* ========== GALLERY ========== */
-        .gallery {
-            position: sticky;
-            top: 100px;
-            height: fit-content;
-        }
-
-        .gallery-main {
-            position: relative;
-            aspect-ratio: 1;
-            background: linear-gradient(145deg, var(--gray-50) 0%, var(--gray-100) 100%);
-            border-radius: var(--radius-xl);
-            overflow: hidden;
-            margin-bottom: 1rem;
-        }
-
-        .gallery-main img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            padding: 2rem;
-            transition: var(--transition-slow);
-        }
-
-        .gallery-main:hover img {
-            transform: scale(1.05);
-        }
-
-        .gallery-badge {
-            position: absolute;
-            top: 1.5rem;
-            left: 1.5rem;
-            background: var(--accent);
-            color: var(--white);
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .gallery-zoom {
-            position: absolute;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            width: 44px;
-            height: 44px;
-            background: var(--white);
-            border: none;
-            border-radius: var(--radius);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: var(--shadow-md);
-            transition: var(--transition);
-            color: var(--gray-600);
-        }
-
-        .gallery-zoom:hover {
-            transform: scale(1.1);
-            color: var(--accent);
-        }
-
-        .gallery-thumbs {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 0.75rem;
-        }
-
-        .gallery-thumb {
-            aspect-ratio: 1;
-            background: var(--gray-100);
-            border-radius: var(--radius);
-            overflow: hidden;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: var(--transition);
-        }
-
-        .gallery-thumb img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .gallery-thumb:hover {
-            border-color: var(--gray-300);
-        }
-
-        .gallery-thumb.active {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-light);
-        }
-
-        /* ========== PRODUCT INFO ========== */
-        .product-info {
-            padding-top: 1rem;
-        }
-
-        .product-brand {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: var(--accent-light);
-            color: var(--accent);
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        .product-title {
-            font-size: 2.5rem;
-            font-weight: 800;
-            line-height: 1.1;
-            margin-bottom: 1rem;
-            color: var(--primary);
-        }
-
-        .product-rating {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .rating-stars {
-            display: flex;
-            gap: 0.25rem;
-            color: var(--accent);
-        }
-
-        .rating-text {
-            font-size: 0.875rem;
-            color: var(--gray-500);
-        }
-
-        .product-price-box {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            padding: 1.25rem;
-            background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
-            border: 1px solid var(--gray-200);
-            border-radius: var(--radius-lg);
-        }
-
-        .price-current {
-            font-size: 2.25rem;
-            font-weight: 800;
-            color: var(--primary);
-        }
-
-        .price-original {
-            font-size: 1.25rem;
-            color: var(--gray-400);
-            text-decoration: line-through;
-        }
-
-        .price-discount {
-            background: var(--success);
-            color: var(--white);
-            padding: 0.375rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-
-        .cart-notice {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 1rem 1.25rem;
-            background: linear-gradient(135deg, var(--accent-light) 0%, rgba(201, 168, 124, 0.05) 100%);
-            border: 1px solid var(--accent);
-            border-radius: var(--radius);
-            margin-bottom: 1.5rem;
-        }
-
-        .cart-notice i {
-            color: var(--accent);
-            font-size: 1.25rem;
-        }
-
-        .cart-notice span {
-            font-weight: 600;
-            color: var(--accent-hover);
-        }
-
-        /* ========== DESCRIPTION SECTION ========== */
-        .description-box {
-            margin-bottom: 2rem;
-        }
-
-        .description-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-        }
-
-        .description-title {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .description-title i {
-            color: var(--accent);
-        }
-
-        .btn-ai-generate {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.625rem 1.25rem;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: var(--white);
-            border: none;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .btn-ai-generate:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .btn-ai-generate:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-ai-generate.loading i {
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .description-content {
-            font-size: 0.95rem;
-            line-height: 1.8;
-            color: var(--gray-600);
-            padding: 1.25rem;
-            background: var(--gray-50);
-            border-radius: var(--radius);
-            border: 1px solid var(--gray-200);
-        }
-
-        /* ========== VARIANT SELECTORS ========== */
-        .variant-selectors {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .selector-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .selector-label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .selector-label i {
-            color: var(--accent);
-            font-size: 0.85rem;
-        }
-
-        .selector-label span {
-            font-weight: 400;
-            color: var(--gray-500);
-        }
-
-        .size-options {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-
-        .size-btn {
-            min-width: 56px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--white);
-            border: 2px solid var(--gray-200);
-            border-radius: var(--radius-sm);
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--primary);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .size-btn:hover:not(:disabled) {
-            border-color: var(--accent);
-            background: var(--accent-light);
-        }
-
-        .size-btn.selected {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: var(--white);
-        }
-
-        .size-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            background: var(--gray-100);
-        }
-
-        .color-options {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .color-option {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .color-btn {
-            width: 48px;
-            height: 48px;
-            border: 3px solid var(--gray-200);
-            border-radius: var(--radius);
-            cursor: pointer;
-            transition: var(--transition);
-            position: relative;
-        }
-
-        .color-btn:hover:not(:disabled) {
-            transform: scale(1.1);
-            border-color: var(--gray-400);
-        }
-
-        .color-btn.selected {
-            border-color: var(--primary);
-            transform: scale(1.1);
-            box-shadow: 0 0 0 3px var(--accent-light);
-        }
-
-        .color-btn.selected::after {
-            content: '✓';
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--white);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-        }
-
-        .color-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        .color-name {
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: var(--gray-500);
-        }
-
-        /* ========== PURCHASE BOX ========== */
-        .purchase-box {
-            background: var(--gray-50);
-            border: 1px solid var(--gray-200);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-            opacity: 0;
-            max-height: 0;
-            overflow: hidden;
-            transition: var(--transition-slow);
-        }
-
-        .purchase-box.show {
-            opacity: 1;
-            max-height: 400px;
-        }
-
-        .purchase-price {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--accent);
-        }
-
-        .purchase-stock {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 600;
-        }
-
-        .purchase-stock.in-stock {
-            color: var(--success);
-        }
-
-        .purchase-stock.low-stock {
-            color: var(--warning);
-        }
-
-        .purchase-stock.out-of-stock {
-            color: var(--danger);
-        }
-
-        .purchase-stock i {
-            font-size: 1rem;
-        }
-
-        .quantity-row {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .quantity-label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--gray-700);
-        }
-
-        .quantity-control {
-            display: flex;
-            align-items: center;
-            background: var(--white);
-            border: 1px solid var(--gray-200);
-            border-radius: var(--radius-sm);
-            overflow: hidden;
-        }
-
-        .qty-btn {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.25rem;
-            color: var(--gray-600);
-            transition: var(--transition);
-        }
-
-        .qty-btn:hover {
-            background: var(--gray-100);
-            color: var(--accent);
-        }
-
-        .qty-input {
-            width: 50px;
-            height: 40px;
-            border: none;
-            text-align: center;
-            font-size: 1rem;
-            font-weight: 600;
-            background: transparent;
-        }
-
-        .qty-input:focus {
-            outline: none;
-        }
-
-        .btn-add-cart {
-            width: 100%;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
-            color: var(--white);
-            border: none;
-            border-radius: var(--radius);
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: var(--transition);
-            box-shadow: 0 4px 14px var(--accent-glow);
-        }
-
-        .btn-add-cart:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px var(--accent-glow);
-        }
-
-        .btn-add-cart:active:not(:disabled) {
-            transform: translateY(0);
-        }
-
-        .btn-add-cart:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-add-cart i {
-            font-size: 1.1rem;
-        }
-
-        .purchase-actions {
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        .btn-wishlist, .btn-share {
-            flex: 1;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            background: var(--white);
-            border: 1px solid var(--gray-200);
-            border-radius: var(--radius-sm);
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--gray-600);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .btn-wishlist:hover, .btn-share:hover {
-            border-color: var(--gray-300);
-            color: var(--primary);
-        }
-
-        /* ========== FEATURES ========== */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1.5rem;
-            margin: 4rem 0;
-            padding: 2.5rem;
-            background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
-            border: 1px solid var(--gray-200);
-            border-radius: var(--radius-xl);
-        }
-
-        .feature-card {
-            text-align: center;
-            padding: 1.5rem;
-        }
-
-        .feature-icon {
-            width: 56px;
-            height: 56px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--accent-light);
-            border-radius: var(--radius);
-            margin: 0 auto 1rem;
-            color: var(--accent);
-            font-size: 1.5rem;
-        }
-
-        .feature-title {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.375rem;
-        }
-
-        .feature-text {
-            font-size: 0.8rem;
-            color: var(--gray-500);
-            line-height: 1.5;
-        }
-
-        /* ========== NEWSLETTER ========== */
-        .newsletter-section {
-            padding: 4rem;
-            background: linear-gradient(135deg, var(--primary) 0%, #2a2a2a 100%);
-            border-radius: var(--radius-xl);
-            text-align: center;
-            margin: 4rem 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .newsletter-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -20%;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-            pointer-events: none;
-        }
-
-        .newsletter-title {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--white);
-            margin-bottom: 0.5rem;
-            position: relative;
-        }
-
-        .newsletter-text {
-            font-size: 1rem;
-            color: var(--gray-400);
-            margin-bottom: 2rem;
-            position: relative;
-        }
-
-        .newsletter-form {
-            display: flex;
-            gap: 0.75rem;
-            max-width: 420px;
-            margin: 0 auto;
-            position: relative;
-        }
-
-        .newsletter-input {
-            flex: 1;
-            height: 52px;
-            padding: 0 1.25rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: var(--radius);
-            color: var(--white);
-            font-size: 0.95rem;
-        }
-
-        .newsletter-input::placeholder {
-            color: var(--gray-400);
-        }
-
-        .newsletter-input:focus {
-            outline: none;
-            border-color: var(--accent);
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .newsletter-btn {
-            height: 52px;
-            padding: 0 2rem;
-            background: var(--accent);
-            border: none;
-            border-radius: var(--radius);
-            color: var(--white);
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .newsletter-btn:hover {
-            background: var(--accent-hover);
-            transform: translateY(-2px);
-        }
-
-        /* ========== FOOTER ========== */
-        .footer {
-            background: var(--primary);
-            color: var(--white);
-            padding: 4rem 2rem 2rem;
-            margin-top: 4rem;
-        }
-
-        .footer-container {
-            max-width: 1440px;
-            margin: 0 auto;
-        }
-
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 1.5fr repeat(4, 1fr);
-            gap: 3rem;
-            margin-bottom: 3rem;
-        }
-
-        .footer-brand {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .footer-logo {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--white);
-        }
-
-        .footer-logo i {
-            color: var(--accent);
-        }
-
-        .footer-tagline {
-            font-size: 0.9rem;
-            color: var(--gray-400);
-            line-height: 1.6;
-        }
-
-        .footer-social {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 0.5rem;
-        }
-
-        .footer-social a {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--secondary);
-            border-radius: var(--radius-sm);
-            color: var(--gray-400);
-            transition: var(--transition);
-        }
-
-        .footer-social a:hover {
-            background: var(--accent);
-            color: var(--white);
-        }
-
-        .footer-column h4 {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--white);
-            margin-bottom: 1.25rem;
-        }
-
-        .footer-column ul {
-            list-style: none;
-        }
-
-        .footer-column li {
-            margin-bottom: 0.75rem;
-        }
-
-        .footer-column a {
-            color: var(--gray-400);
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: var(--transition);
-        }
-
-        .footer-column a:hover {
-            color: var(--accent);
-        }
-
-        .footer-bottom {
-            padding-top: 2rem;
-            border-top: 1px solid var(--secondary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .footer-copyright {
-            font-size: 0.85rem;
-            color: var(--gray-500);
-        }
-
-        .footer-payments {
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        .footer-payments i {
-            font-size: 1.75rem;
-            color: var(--gray-500);
-        }
-
-        /* ========== RESPONSIVE ========== */
-        @media (max-width: 1024px) {
-            .product-section {
-                grid-template-columns: 1fr;
-                gap: 2rem;
-            }
-
-            .gallery {
-                position: static;
-            }
-
-            .features-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .footer-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            .navbar-container {
-                padding: 0 1rem;
-            }
-
-            .navbar-nav {
-                display: none;
-            }
-
-            .menu-toggle {
-                display: flex;
-            }
-
-            .main-container {
-                padding: 1.5rem 1rem;
-            }
-
-            .product-title {
-                font-size: 1.75rem;
-            }
-
-            .price-current {
-                font-size: 1.75rem;
-            }
-
-            .gallery-thumbs {
-                grid-template-columns: repeat(4, 1fr);
-            }
-
-            .features-grid {
-                grid-template-columns: 1fr 1fr;
-                padding: 1.5rem;
-            }
-
-            .newsletter-section {
-                padding: 2.5rem 1.5rem;
-            }
-
-            .newsletter-form {
-                flex-direction: column;
-            }
-
-            .footer-grid {
-                grid-template-columns: 1fr;
-                gap: 2rem;
-            }
-
-            .footer-bottom {
-                flex-direction: column;
-                gap: 1rem;
-                text-align: center;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .description-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.75rem;
-            }
-
-            .btn-ai-generate {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .size-options {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-            }
-
-            .size-btn {
-                min-width: auto;
-            }
-
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
     </style>
 </head>
 
 <body>
 
-    <!-- NAVIGATION -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="user-interface.php" class="navbar-brand">
-                <i class="fas fa-shoe-prints"></i>
-                <span><?php echo htmlspecialchars($store_settings['store_name']); ?></span>
+    <div class="toast-container" id="toast-container"></div>
+    
+    <!-- Navigation (Same as other pages) -->
+    <nav class="nav-modern">
+        <div class="logo">
+            <a href="user-interface.php" class="logo-modern">
+                <span class="gradient-text-accent"><?php echo htmlspecialchars($store_settings['store_name']); ?></span>
+                <span class="logo-sparkle">✨</span>
             </a>
-
-            <ul class="navbar-nav">
-                <li><a href="index.php">Home</a></li>
-                <li><a href="shoes.php">Shop</a></li>
-                <li><a href="brand.php">Brands</a></li>
-                <li><a href="best-seller.php">Best Sellers</a></li>
-            </ul>
-
-            <div class="navbar-actions">
-                <a href="cart.php" class="cart-btn">
-                    <i class="fas fa-shopping-bag"></i>
-                    <?php
-                    $cart_product_count = 0;
-                    if (isset($_SESSION['customer_id'])) {
-                        $cart_conn = new mysqli($servername, $username, $password, $database);
-                        if (!$cart_conn->connect_error) {
-                            $cart_stmt = $cart_conn->prepare("SELECT SUM(quantity) as total FROM cart WHERE customer_id = ?");
-                            $cart_stmt->bind_param('i', $_SESSION['customer_id']);
-                            $cart_stmt->execute();
-                            $cart_result = $cart_stmt->get_result();
-                            if ($cart_result && ($row = $cart_result->fetch_assoc())) {
-                                $cart_product_count = (int)($row['total'] ?? 0);
+        </div>
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation" tabindex="0">
+            <i class="fas fa-bars"></i>
+        </button>
+        <ul class="nav-links" id="nav-links">
+            <li><a href="12_12.php" class="nav-link-enhanced sale-link"><i class="fas fa-fire nav-icon"></i> 12.12 Sale</a></li>
+            <li><a href="user-interface.php" class="nav-link-enhanced"><i class="fas fa-home nav-icon"></i> Home</a></li>
+            <li><a href="best-seller.php" class="nav-link-enhanced"><i class="fas fa-star nav-icon"></i> Best Seller</a></li>
+            <li><a href="shoes.php" class="nav-link-enhanced"><i class="fas fa-shoe-prints nav-icon"></i> Shoes</a></li>
+            <li class="brand-dropdown">
+                <a href="brand.php" class="brand-link">Brand</a>
+                <div class="brand-mega-menu">
+                    <div class="brand-grid">
+                        <?php
+                            $brand_nav_query = "SELECT brand_id, brand_name, brand_logo FROM brand ORDER BY brand_name ASC";
+                            $brand_nav_result = $conn->query($brand_nav_query);
+                            if ($brand_nav_result && $brand_nav_result->num_rows > 0) {
+                                while ($brand_nav = $brand_nav_result->fetch_assoc()) {
+                                    $bn_name = htmlspecialchars($brand_nav['brand_name'], ENT_QUOTES, 'UTF-8');
+                                    $bn_logo = htmlspecialchars($brand_nav['brand_logo'] ?? 'upload/brand/default_logo.png', ENT_QUOTES, 'UTF-8');
+                                    $bn_id = (int)$brand_nav['brand_id'];
+                                    echo "<a href='brand.php?id={$bn_id}' class='brand-item'>
+                                            <div class='brand-logo-box'><img src='{$bn_logo}' alt='{$bn_name} logo'></div>
+                                            <h4 class='brand-item-name'>{$bn_name}</h4>
+                                          </a>";
+                                }
                             }
-                            $cart_stmt->close();
-                        }
-                        $cart_conn->close();
-                    }
-                    if ($cart_product_count > 0) {
-                        echo '<span class="cart-badge" id="cartBadge">' . $cart_product_count . '</span>';
-                    }
-                    ?>
-                </a>
-                <button class="menu-toggle" id="menuToggle">
-                    <i class="fas fa-bars"></i>
-                </button>
+                        ?>
+                    </div>
+                </div>
+            </li>
+        </ul>
+        <div class="nav-right">
+            <a href="cart.php" class="cart-icon cart-icon-modern" id="cart-icon" title="Shopping Cart">
+                <i class="fas fa-shopping-bag"></i>
+                <?php if ($cart_count > 0): ?>
+                    <span class="cart-badge cart-badge-modern" id="cart-badge"><?php echo $cart_count; ?></span>
+                <?php else: ?>
+                    <span class="cart-badge cart-badge-modern" id="cart-badge" style="display: none;">0</span>
+                <?php endif; ?>
+                <span class="cart-pulse"></span>
+            </a>
+            <div class="user-menu" id="user-menu">
+                <div class="user-menu-toggle">
+                    <div class="user-avatar"><i class="fa-solid fa-user"></i></div>
+                    <div class="user-info">
+                        <span class="user-greeting">Hello,</span>
+                        <span class="user-name"><?php echo htmlspecialchars($customer_name); ?></span>
+                    </div>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </div>
+                <div class="user-dropdown">
+                    <div class="dropdown-header">
+                        <div class="dropdown-avatar"><i class="fas fa-user-circle"></i></div>
+                        <div class="dropdown-user-info">
+                            <span class="dropdown-name"><?php echo htmlspecialchars($customer_name); ?></span>
+                            <span class="dropdown-email">Manage your account</span>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="user-profile.php" class="dropdown-item"><i class="fas fa-user-cog"></i> My Profile</a>
+                    <a href="orders.php" class="dropdown-item"><i class="fas fa-box"></i> My Orders</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="logout.php" class="dropdown-item logout-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
             </div>
         </div>
     </nav>
 
     <!-- MAIN CONTENT -->
-    <main class="main-container">
+    <main class="pd-main">
         <!-- Breadcrumb -->
-        <div class="breadcrumb">
-            <a href="index.php">Home</a>
-            <i class="fas fa-chevron-right"></i>
-            <a href="shoes.php">Shop</a>
-            <i class="fas fa-chevron-right"></i>
-            <span class="current"><?php echo htmlspecialchars($product['name']); ?></span>
-        </div>
+        <nav class="breadcrumb-modern">
+            <div class="breadcrumb-container">
+                <a href="user-interface.php" class="breadcrumb-link">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <i class="fas fa-chevron-right breadcrumb-separator"></i>
+                <a href="shoes.php" class="breadcrumb-link">
+                    <span>Shop</span>
+                </a>
+                <i class="fas fa-chevron-right breadcrumb-separator"></i>
+                <span class="breadcrumb-current"><?php echo htmlspecialchars($product['name']); ?></span>
+            </div>
+        </nav>
 
-        <!-- Product Section -->
-        <section class="product-section">
+        <!-- Product Grid -->
+        <div class="pd-product-grid">
             <!-- Gallery -->
-            <div class="gallery">
+            <div class="pd-gallery">
                 <?php
                     $firstColor = isset($_GET['color']) && isset($colorToImages[$_GET['color']]) ? $_GET['color'] : array_key_first($colorToImages);
                     $defaultImages = $firstColor ? $colorToImages[$firstColor] : [];
                 ?>
-                <div class="gallery-main">
-                    <span class="gallery-badge">New Arrival</span>
+                <div class="pd-gallery-main">
+                    <span class="pd-gallery-badge">New Arrival</span>
                     <img id="mainImage" 
                          src="<?php echo htmlspecialchars($defaultImages[0] ?? 'upload/product-image/placeholder.png'); ?>" 
                          alt="<?php echo htmlspecialchars($product['name']); ?>">
-                    <button class="gallery-zoom" title="Zoom">
-                        <i class="fas fa-expand"></i>
-                    </button>
+                    <div class="pd-gallery-actions">
+                        <button class="pd-gallery-btn" title="Zoom">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="gallery-thumbs" id="thumbnailList">
+                <div class="pd-gallery-thumbs" id="thumbnailList">
                     <?php foreach ($defaultImages as $index => $img): ?>
-                        <div class="gallery-thumb <?php echo $index === 0 ? 'active' : ''; ?>"
+                        <div class="pd-thumb <?php echo $index === 0 ? 'active' : ''; ?>"
                              data-image="<?php echo htmlspecialchars($img); ?>">
                             <img src="<?php echo htmlspecialchars($img); ?>" alt="Thumbnail <?php echo $index + 1; ?>">
                         </div>
@@ -1372,55 +314,55 @@ $conn->close();
             </div>
 
             <!-- Product Info -->
-            <div class="product-info">
-                <span class="product-brand">
+            <div class="pd-info">
+                <span class="pd-brand">
                     <i class="fas fa-award"></i>
                     <?php echo htmlspecialchars($product['brand_name'] ?? 'Premium Brand'); ?>
                 </span>
 
-                <h1 class="product-title"><?php echo htmlspecialchars($product['name']); ?></h1>
+                <h1 class="pd-title"><?php echo htmlspecialchars($product['name']); ?></h1>
 
-                <div class="product-rating">
-                    <div class="rating-stars">
+                <div class="pd-rating">
+                    <div class="pd-rating-stars">
                         <i class="fas fa-star"></i>
                         <i class="fas fa-star"></i>
                         <i class="fas fa-star"></i>
                         <i class="fas fa-star"></i>
                         <i class="fas fa-star-half-alt"></i>
                     </div>
-                    <span class="rating-text">4.5 (128 reviews)</span>
+                    <span class="pd-rating-text">4.5 (128 reviews)</span>
                 </div>
 
-                <div class="product-price-box">
-                    <span class="price-current">
+                <div class="pd-price-box">
+                    <span class="pd-price-current">
                         ₱<?php echo number_format((float)$min_price, 2); ?>
                     </span>
                     <?php if ($min_price != $max_price): ?>
-                        <span class="price-original">₱<?php echo number_format((float)$max_price + 500, 2); ?></span>
-                        <span class="price-discount">Save 15%</span>
+                        <span class="pd-price-original">₱<?php echo number_format((float)$max_price + 500, 2); ?></span>
+                        <span class="pd-price-badge">Save 15%</span>
                     <?php endif; ?>
                 </div>
 
                 <?php if ($cart_count > 0): ?>
-                    <div class="cart-notice">
+                    <div class="pd-cart-notice">
                         <i class="fas fa-shopping-cart"></i>
                         <span><?php echo $cart_count; ?> item(s) already in your cart</span>
                     </div>
                 <?php endif; ?>
 
-                <!-- Description -->
-                <div class="description-box">
-                    <div class="description-header">
-                        <span class="description-title">
+                <!-- AI Description -->
+                <div class="pd-description">
+                    <div class="pd-description-header">
+                        <span class="pd-description-title">
                             <i class="fas fa-align-left"></i>
                             Product Description
                         </span>
-                        <button class="btn-ai-generate" id="generateDescBtn" title="Generate description with AI">
+                        <button class="pd-ai-btn" id="generateDescBtn" title="Generate description with AI">
                             <i class="fas fa-wand-magic-sparkles"></i>
                             AI Generate
                         </button>
                     </div>
-                    <p class="description-content" id="productDesc">
+                    <p class="pd-description-content" id="productDesc">
                         <?php 
                             $display_desc = is_string($final_description) ? trim($final_description) : '';
                             $display_desc = str_ireplace('N/A', '', $display_desc);
@@ -1439,7 +381,7 @@ $conn->close();
 
                 <?php if (count($variants) > 0): ?>
                     <!-- Variant Selectors -->
-                    <div class="variant-selectors">
+                    <div class="pd-variants">
                         <?php
                         $sizes = [];
                         $colors = [];
@@ -1452,15 +394,15 @@ $conn->close();
                         ?>
 
                         <!-- Size Selector -->
-                        <div class="selector-group">
-                            <label class="selector-label">
+                        <div class="pd-variant-group">
+                            <label class="pd-variant-label">
                                 <i class="fas fa-ruler-horizontal"></i>
                                 Select Size
-                                <span>— Size Guide</span>
+                                <span class="hint">— Size Guide</span>
                             </label>
-                            <div class="size-options" id="sizeOptions">
+                            <div class="pd-sizes" id="sizeOptions">
                                 <?php foreach ($sizes as $size): ?>
-                                    <button class="size-btn" data-size="<?php echo htmlspecialchars($size); ?>">
+                                    <button class="pd-size-btn" data-size="<?php echo htmlspecialchars($size); ?>">
                                         <?php echo htmlspecialchars($size); ?>
                                     </button>
                                 <?php endforeach; ?>
@@ -1468,20 +410,20 @@ $conn->close();
                         </div>
 
                         <!-- Color Selector -->
-                        <div class="selector-group">
-                            <label class="selector-label">
+                        <div class="pd-variant-group">
+                            <label class="pd-variant-label">
                                 <i class="fas fa-palette"></i>
                                 Select Color
                             </label>
-                            <div class="color-options" id="colorOptions">
+                            <div class="pd-colors" id="colorOptions">
                                 <?php foreach ($colors as $color): ?>
-                                    <div class="color-option">
-                                        <button class="color-btn"
+                                    <div class="pd-color-option">
+                                        <button class="pd-color-btn"
                                                 data-color="<?php echo htmlspecialchars($color); ?>"
                                                 title="<?php echo htmlspecialchars($color); ?>"
                                                 style="background-color: <?php echo htmlspecialchars($color); ?>;">
                                         </button>
-                                        <span class="color-name"><?php echo htmlspecialchars($color); ?></span>
+                                        <span class="pd-color-name"><?php echo htmlspecialchars($color); ?></span>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
@@ -1489,33 +431,33 @@ $conn->close();
                     </div>
 
                     <!-- Purchase Box -->
-                    <div class="purchase-box" id="variantInfo">
-                        <div class="purchase-price" id="variantPrice">₱0.00</div>
-                        <div class="purchase-stock" id="variantStock">
+                    <div class="pd-purchase" id="variantInfo">
+                        <div class="pd-purchase-price" id="variantPrice">₱0.00</div>
+                        <div class="pd-purchase-stock" id="variantStock">
                             <i class="fas fa-circle"></i>
                             Select size and color
                         </div>
 
-                        <div class="quantity-row">
-                            <span class="quantity-label">Quantity:</span>
-                            <div class="quantity-control">
-                                <button type="button" id="qty-decrease" class="qty-btn">−</button>
-                                <input type="number" id="quantity" class="qty-input" value="1" min="1" max="10">
-                                <button type="button" id="qty-increase" class="qty-btn">+</button>
+                        <div class="pd-quantity-row">
+                            <span class="pd-quantity-label">Quantity:</span>
+                            <div class="pd-quantity-control">
+                                <button type="button" id="qty-decrease" class="pd-qty-btn">−</button>
+                                <input type="number" id="quantity" class="pd-qty-input" value="1" min="1" max="10">
+                                <button type="button" id="qty-increase" class="pd-qty-btn">+</button>
                             </div>
                         </div>
 
-                        <button class="btn-add-cart" id="addToCartBtn" data-variant-id="">
+                        <button class="pd-add-cart-btn" id="addToCartBtn" data-variant-id="">
                             <i class="fas fa-shopping-bag"></i>
                             Add to Cart
                         </button>
 
-                        <div class="purchase-actions">
-                            <button class="btn-wishlist">
+                        <div class="pd-purchase-secondary">
+                            <button class="pd-secondary-btn">
                                 <i class="far fa-heart"></i>
                                 Wishlist
                             </button>
-                            <button class="btn-share">
+                            <button class="pd-secondary-btn">
                                 <i class="fas fa-share-alt"></i>
                                 Share
                             </button>
@@ -1523,48 +465,38 @@ $conn->close();
                     </div>
                 <?php endif; ?>
             </div>
-        </section>
+        </div>
 
-        <!-- Features Grid -->
-        <section class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-truck-fast"></i>
+        <!-- Features -->
+        <section class="pd-features">
+            <div class="pd-feature">
+                <div class="pd-feature-icon">
+                    <i class="fas fa-truck"></i>
                 </div>
-                <h3 class="feature-title">Free Shipping</h3>
-                <p class="feature-text">Free delivery on orders over ₱2,500</p>
+                <h3 class="pd-feature-title">Free Shipping</h3>
+                <p class="pd-feature-text">Free delivery on orders over ₱2,500</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-rotate-left"></i>
+            <div class="pd-feature">
+                <div class="pd-feature-icon">
+                    <i class="fas fa-arrow-rotate-left"></i>
                 </div>
-                <h3 class="feature-title">Easy Returns</h3>
-                <p class="feature-text">30-day hassle-free return policy</p>
+                <h3 class="pd-feature-title">Easy Returns</h3>
+                <p class="pd-feature-text">30-day hassle-free return policy</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-shield-check"></i>
+            <div class="pd-feature">
+                <div class="pd-feature-icon">
+                    <i class="fas fa-shield-halved"></i>
                 </div>
-                <h3 class="feature-title">Secure Payment</h3>
-                <p class="feature-text">100% secure payment methods</p>
+                <h3 class="pd-feature-title">Secure Payment</h3>
+                <p class="pd-feature-text">100% secure payment methods</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-headset"></i>
+            <div class="pd-feature">
+                <div class="pd-feature-icon">
+                    <i class="fas fa-headphones"></i>
                 </div>
-                <h3 class="feature-title">24/7 Support</h3>
-                <p class="feature-text">Dedicated customer service team</p>
+                <h3 class="pd-feature-title">24/7 Support</h3>
+                <p class="pd-feature-text">Dedicated customer service team</p>
             </div>
-        </section>
-
-        <!-- Newsletter -->
-        <section class="newsletter-section">
-            <h2 class="newsletter-title">Stay in the Loop</h2>
-            <p class="newsletter-text">Subscribe for exclusive offers and new arrivals</p>
-            <form class="newsletter-form" onsubmit="return false;">
-                <input type="email" class="newsletter-input" placeholder="Enter your email address" required>
-                <button type="submit" class="newsletter-btn">Subscribe</button>
-            </form>
         </section>
     </main>
 
@@ -1675,13 +607,13 @@ $conn->close();
 
             if (stock > 10) {
                 stockEl.innerHTML = '<i class="fas fa-check-circle"></i> In Stock';
-                stockEl.className = "purchase-stock in-stock";
+                stockEl.className = "pd-purchase-stock in-stock";
             } else if (stock > 0) {
                 stockEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Only ' + stock + ' left';
-                stockEl.className = "purchase-stock low-stock";
+                stockEl.className = "pd-purchase-stock low-stock";
             } else {
                 stockEl.innerHTML = '<i class="fas fa-times-circle"></i> Out of Stock';
-                stockEl.className = "purchase-stock out-of-stock";
+                stockEl.className = "pd-purchase-stock out-of-stock";
             }
 
             const addBtn = document.getElementById('addToCartBtn');
@@ -1692,13 +624,13 @@ $conn->close();
         }
 
         // Size selector
-        document.querySelectorAll('.size-btn').forEach(btn => {
+        document.querySelectorAll('.pd-size-btn').forEach(btn => {
             btn.addEventListener('click', function () {
                 selectedSize = this.dataset.size;
-                document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
+                document.querySelectorAll('.pd-size-btn').forEach(b => b.classList.remove('selected'));
                 this.classList.add('selected');
 
-                document.querySelectorAll('.color-btn').forEach(b => {
+                document.querySelectorAll('.pd-color-btn').forEach(b => {
                     const color = b.dataset.color;
                     b.disabled = !(selectedSize + "|" + color in variantMap);
                 });
@@ -1708,10 +640,10 @@ $conn->close();
         });
 
         // Color selector
-        document.querySelectorAll('.color-btn').forEach(btn => {
+        document.querySelectorAll('.pd-color-btn').forEach(btn => {
             btn.addEventListener('click', function () {
                 selectedColor = this.dataset.color;
-                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+                document.querySelectorAll('.pd-color-btn').forEach(b => b.classList.remove('selected'));
                 this.classList.add('selected');
 
                 // Update gallery images
@@ -1728,16 +660,16 @@ $conn->close();
                 // Update thumbnails
                 let thumbsHtml = '';
                 galleryImages.forEach((img, idx) => {
-                    thumbsHtml += `<div class="gallery-thumb ${idx === 0 ? 'active' : ''}" data-image="${img}">
+                    thumbsHtml += `<div class="pd-thumb ${idx === 0 ? 'active' : ''}" data-image="${img}">
                         <img src="${img}" alt="Thumbnail ${idx + 1}">
                     </div>`;
                 });
                 thumbnailList.innerHTML = thumbsHtml;
 
                 // Re-attach click events to thumbnails
-                thumbnailList.querySelectorAll('.gallery-thumb').forEach(thumb => {
+                thumbnailList.querySelectorAll('.pd-thumb').forEach(thumb => {
                     thumb.addEventListener('click', function () {
-                        thumbnailList.querySelectorAll('.gallery-thumb').forEach(t => t.classList.remove('active'));
+                        thumbnailList.querySelectorAll('.pd-thumb').forEach(t => t.classList.remove('active'));
                         this.classList.add('active');
                         mainImage.src = this.dataset.image;
                     });
@@ -1748,9 +680,9 @@ $conn->close();
         });
 
         // Thumbnail click
-        document.querySelectorAll('.gallery-thumb').forEach(thumb => {
+        document.querySelectorAll('.pd-thumb').forEach(thumb => {
             thumb.addEventListener('click', function () {
-                document.querySelectorAll('.gallery-thumb').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.pd-thumb').forEach(t => t.classList.remove('active'));
                 this.classList.add('active');
                 document.getElementById('mainImage').src = this.dataset.image;
             });
@@ -1813,19 +745,12 @@ $conn->close();
                     btn.innerHTML = '<i class="fas fa-check"></i> Added!';
                     setTimeout(() => { btn.innerHTML = originalText; }, 2000);
                     
+                    // Update cart badge (modern nav)
                     if (data.cart_count !== undefined) {
-                        const badge = document.getElementById('cartBadge');
+                        const badge = document.getElementById('cart-badge');
                         if (badge) {
                             badge.textContent = data.cart_count;
-                        } else {
-                            const cartBtn = document.querySelector('.cart-btn');
-                            if (cartBtn) {
-                                const newBadge = document.createElement('span');
-                                newBadge.className = 'cart-badge';
-                                newBadge.id = 'cartBadge';
-                                newBadge.textContent = data.cart_count;
-                                cartBtn.appendChild(newBadge);
-                            }
+                            badge.style.display = data.cart_count > 0 ? 'flex' : 'none';
                         }
                     }
                 } else {
@@ -1882,25 +807,67 @@ $conn->close();
             }
         });
 
-        // Mobile menu toggle
-        document.getElementById('menuToggle')?.addEventListener('click', function () {
-            document.querySelector('.navbar-nav')?.classList.toggle('show');
-        });
+        // Modern Navigation Menu Toggle
+        const menuToggle = document.getElementById('menu-toggle');
+        const navLinks = document.getElementById('nav-links');
+        
+        if (menuToggle && navLinks) {
+            menuToggle.addEventListener('click', function() {
+                navLinks.classList.toggle('active');
+                this.classList.toggle('active');
+            });
+        }
+
+        // User Menu Dropdown
+        const userMenu = document.getElementById('user-menu');
+        if (userMenu) {
+            const userMenuToggle = userMenu.querySelector('.user-menu-toggle');
+            const userDropdown = userMenu.querySelector('.user-dropdown');
+            
+            if (userMenuToggle && userDropdown) {
+                userMenuToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    userMenu.classList.toggle('active');
+                });
+                
+                document.addEventListener('click', function(e) {
+                    if (!userMenu.contains(e.target)) {
+                        userMenu.classList.remove('active');
+                    }
+                });
+            }
+        }
+
+        // Cart Badge Update
+        function updateCartBadge(count) {
+            const badge = document.getElementById('cart-badge');
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'flex' : 'none';
+            }
+        }
 
         // Initialize: click first color on load
         document.addEventListener('DOMContentLoaded', () => {
             if (initialColor) {
-                const colorButton = document.querySelector(`.color-btn[data-color="${CSS.escape(initialColor)}"]`);
+                const colorButton = document.querySelector(`.pd-color-btn[data-color="${CSS.escape(initialColor)}"]`);
                 if (colorButton && !colorButton.disabled) {
                     colorButton.click();
                     return;
                 }
             }
-            const firstColorButton = document.querySelector('.color-btn:not(:disabled)');
+            const firstColorButton = document.querySelector('.pd-color-btn:not(:disabled)');
             if (firstColorButton) {
                 firstColorButton.click();
             }
         });
     </script>
+    <?php include __DIR__ . '/partials/chatbot.php'; ?>
+<?php 
+// Close database connection at the end
+if (isset($conn) && $conn instanceof mysqli) {
+    $conn->close();
+}
+?>
 </body>
 </html>

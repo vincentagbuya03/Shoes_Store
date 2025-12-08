@@ -98,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $resp['error'] = 'DB prepare failed';
     }
     header('Content-Type: application/json'); echo json_encode($resp); exit();
+    
 }
 
 $selected = $_POST['selected_items'] ?? [];
@@ -300,886 +301,1438 @@ if ($q) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Complete your purchase securely">
+    <meta name="theme-color" content="#6366f1">
     <title>Checkout - <?php echo htmlspecialchars($store_settings['store_name']); ?></title>
     <!-- Leaflet CSS for map picker -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="asset/style/animations.css">
     <?php echo getStoreThemeCSS(); ?>
     <style>
-/* (existing CSS unchanged) */
-* {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f8f9fa;
-            color: #1a1a1a;
-            line-height: 1.6;
-        }
-
-        .checkout-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
-        .checkout-header {
-            margin-bottom: 32px;
-        }
-
-        .checkout-header h1 {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .checkout-header p {
-            color: #666;
-            font-size: 14px;
-        }
-
-        .checkout-content {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 32px;
-        }
-
-        .checkout-main {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        /* Card Styles */
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-            border: 1px solid #e5e7eb;
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .card-title-icon {
-            width: 24px;
-            height: 24px;
-            background: #1a1a1a;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 14px;
-        }
-
-        /* Address Section */
-        .address-section {
-            display: flex;
-            gap: 10px;
-        }
-
-        .address-display {
-            flex = 1;
-            padding: 8px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #1a1a1a;
-            white-space: pre-wrap;
-            word-break: break-word;
-
-        }
-
-        .address-editor {
-            width: 100%;
-            min-height: 100px;
-            padding: 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-family: inherit;
-            font-size: 14px;
-            resize: vertical;
-            display: none;
-        }
-
-        .address-editor:focus {
-            outline: none;
-            border-color: #1a1a1a;
-            box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
-        }
-
-        .address-msg {
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 12px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .address-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-        }
-
-        /* Products Section */
-        .products-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .product-item {
-            display: flex;
-            gap: 14px;
-            padding: 14px;
-            background: #f8f9fa;
-            border-radius: 8px;
-
-        }
-
-        .product-image {
-            width: 150px;
-            height: 150px;
-            background: #e5e7eb;
-            border-radius: 8px;
-            flex-shrink: 0;
-        }
-
-        .product-info {
-            flex: 1;
-        }
-
-        .product-name {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .product-qty {
-            font-size: 13px;
-            color: #6b7280;
-            margin-top: 6px;
-        }
-
-        .product-price {
-            font-weight: 700;
-            font-size: 16px;
-        }
-
-        /* Payment Section */
-        .payment-methods {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .payment-option {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .payment-option:hover {
-            border-color: #1a1a1a;
-            background: #f8f9fa;
-        }
-
-        .payment-option input[type="radio"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-            accent-color: #1a1a1a;
-        }
-
-        .payment-option input[type="radio"]:checked ~ .payment-label {
-            font-weight: 600;
-        }
-
-        .payment-label {
-            flex: 1;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-
-        /* Form Fields */
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: #1a1a1a;
-        }
-
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-            transition: border-color 0.2s;
-        }
-
-        .form-group input:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #1a1a1a;
-            box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
-        }
-
-        .payment-fields {
-            padding: 16px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            display: none;
-            margin-top: 12px;
-        }
-
-        /* Send payment / GCash design */
-        .gcash-info {
-            margin-top: 12px;
-            display: none;
-        }
-
-        .gcash-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .gcash-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-
-            color: #fff;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-weight: 700;
-            box-shadow: 0 4px 10px rgba(17,24,39,0.08);
-
-            max-width: 100%;
-        }
-
-        .gcash-pill img, .owner-bank-icon {
-            width: 100px;
-            height: 100px;
-            object-fit: contain;
-            border-radius: 6px;
-            background: #fff;
-            padding: 4px;
-        }
-
-        /* When pill has a large QR, stack content vertically and center it */
-        .gcash-pill.has-qr {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 10px;
-            border-radius: 12px;
-        }
-
-        .gcash-qr-thumb {
-            width: 100%;
-            max-width: 420px;
-            height: auto;
-            border-radius: 12px;
-            object-fit: contain;
-            cursor: pointer;
-            background: #fff;
-            padding: 10px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 8px 26px rgba(0,0,0,0.12);
-            display: block;
-        }
-
-        @media (max-width: 1400px) {
-            .gcash-qr-thumb { max-width: 340px; }
-        }
-
-        @media (max-width: 1024px) {
-            .gcash-qr-thumb { max-width: 260px; }
-        }
-
-        @media (max-width: 560px) {
-            .gcash-qr-thumb { max-width: 160px; }
-        }
-
-        .gcash-instruction {
-            color: #374151;
-            font-size: 13px;
-            margin-top: 6px;
-        }
-
-        .copy-btn {
-            background: #e5e7eb;
-            border: none;
-            padding: 8px 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #111827;
-            transition: background .15s ease, transform .08s ease;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-        }
-
-        .copy-btn:active { transform: translateY(1px); }
-
-        .payment-proof-row {
-            margin-top: 12px;
-            display: none;
-        }
-
-        .proof-preview {
-            max-width: 220px;
-            max-height: 120px;
-            border-radius: 8px;
-            display: none;
-            border: 1px solid #e5e7eb;
-            padding: 6px;
-            background: #fff;
-        }
-
-        @media (max-width: 560px) {
-            .gcash-pill { font-size: 14px; padding: 7px 10px; }
-            .copy-btn { padding: 7px 8px; }
-        }
-
-        .payment-fields.visible {
-            display: block;
-        }
-
-        /* Order Summary */
-        .order-summary {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-            border: 1px solid #e5e7eb;
-            height: fit-content;
-            position: sticky;
-            top: 24px;
-        }
-
-        .summary-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e5e7eb;
-            font-size: 14px;
-        }
-
-        .summary-row.total {
-            border-bottom: none;
-            font-size: 18px;
-            font-weight: 600;
-            padding-top: 16px;
-            padding-bottom: 0;
-        }
-
-        .summary-amount {
-            font-weight: 600;
-            font-size: 15px;
-        }
-
-        /* Added animation styles for shoes SVG */
-        @keyframes bobbing {
-            0%, 100% {
-                transform: translateY(0px);
-            }
-            50% {
-                transform: translateY(-12px);
-            }
-        }
-
-        @keyframes rotation {
-            0% {
-                transform: rotateZ(0deg);
-            }
-            100% {
-                transform: rotateZ(360deg);
-            }
-        }
-
-        @keyframes fadeInScale {
-            0% {
-                opacity: 0;
-                transform: scale(0.5);
-            }
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        .shoes-animation-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-top: 24px;
-            padding-top: 24px;
-            border-top: 1px solid #e5e7eb;
-            min-height: 140px;
-        }
-
-        .shoes-svg {
-            animation: fadeInScale 0.8s ease-out;
-        }
-
-        /* Buttons */
-        .button-group {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-
-        .btn-primary {
-            background: #1a1a1a;
-            color: white;
-            flex: 1;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: #0d0d0d;
-            box-shadow: 0 4px 12px rgba(26, 26, 26, 0.2);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: #e5e7eb;
-            color: #1a1a1a;
-            flex: 1;
-        }
-
-        .btn-secondary:hover {
-            background: #d1d5db;
-        }
-
-        .btn-sm {
-            padding: 8px 16px;
-            flex: none;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .checkout-content {
-                grid-template-columns: 1fr;
-            }
-
-            .order-summary {
-                position: static;
-                top: auto;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 32px 16px;
-            color: #666;
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-
-        /* Order modal + verification/check animations */
-        #order-modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 6000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        #order-modal .modal-card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 28px;
-            max-width: 520px;
-            width: 100%;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(2,6,23,0.2);
-        }
-        .verifying-dot {
-            display:inline-block;
-            width: 10px; height: 10px;
-            background: #1a1a1a;
-            border-radius:50%;
-            margin: 0 6px;
-            opacity: 0.2;
-            transform: translateY(0);
-            animation: verifying 1s infinite;
-        }
-        .verifying-dot:nth-child(2){ animation-delay: .15s; }
-        .verifying-dot:nth-child(3){ animation-delay: .3s; }
-        @keyframes verifying {
-            0% { opacity:0.2; transform: translateY(0); }
-            50% { opacity:1; transform: translateY(-8px); }
-            100% { opacity:0.2; transform: translateY(0); }
-        }
-
-        /* check animation */
-        .check-container {
-            width: 120px; height: 120px; margin: 0 auto 8px;
-            display:flex; align-items:center; justify-content:center;
-            border-radius: 999px;
-            background: linear-gradient(180deg,#10b981,#059669);
-            box-shadow: 0 8px 30px rgba(16,185,129,0.18);
-            transform: scale(0.6);
-            opacity: 0;
-            transition: transform .36s cubic-bezier(.2,.9,.2,1), opacity .2s ease;
-        }
-        .check-container.visible { transform: scale(1); opacity: 1; }
-        .check-svg {
-            width: 64px; height:64px; color: #fff;
-        }
-
-    </style>
-    <style>
-        /* Map modal styles */
-        #map-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:6500; align-items:center; justify-content:center; }
-        #map-modal .map-card { width:92%; max-width:980px; height:80vh; background:#fff; border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }
-        #map-container { flex:1; }
-        #map-modal .map-header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #eee; }
-        #map-modal .map-actions { display:flex; gap:8px; }
+/* ============================================
+   CHECKOUT PAGE - MODERN REDESIGN
+   ============================================ */
+
+:root {
+    --primary: #6366f1;
+    --primary-dark: #4f46e5;
+    --primary-light: #818cf8;
+    --accent: #14b8a6;
+    --accent-dark: #0d9488;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --bg-body: #f1f5f9;
+    --bg-white: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.95);
+    --bg-subtle: #f8fafc;
+    --border-light: #e2e8f0;
+    --border-medium: #cbd5e1;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --transition-fast: 150ms ease;
+    --transition-normal: 250ms ease;
+    --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e0f2fe 50%, #f0fdf4 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+/* Focus States */
+*:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ============================================
+   LAYOUT
+   ============================================ */
+.checkout-wrapper {
+    min-height: 100vh;
+    padding: 2rem 1rem;
+}
+
+.checkout-container {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+/* Header */
+.checkout-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    padding: 2rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-light);
+}
+
+.checkout-header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.checkout-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.checkout-steps {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1.5rem;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.step.active {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+.step-number {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+}
+
+.step.active .step-number {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+}
+
+.step.completed .step-number {
+    background: var(--success);
+    color: white;
+}
+
+/* Content Grid */
+.checkout-content {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 2rem;
+    align-items: start;
+}
+
+.checkout-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ============================================
+   CARD COMPONENTS
+   ============================================ */
+.card {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+    transition: box-shadow var(--transition-normal);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(20, 184, 166, 0.03) 100%);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.card-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+}
+
+.card-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* ============================================
+   ADDRESS SECTION
+   ============================================ */
+.address-display {
+    padding: 1rem 1.25rem;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.address-display.empty {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.address-editor {
+    width: 100%;
+    min-height: 100px;
+    padding: 1rem;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-md);
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    display: none;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.address-editor:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.address-msg {
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm);
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    display: none;
+}
+
+.address-msg.success {
+    background: #d1fae5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.address-msg.error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.address-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+/* ============================================
+   PRODUCTS SECTION
+   ============================================ */
+.products-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.product-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.product-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.product-image {
+    width: 100px;
+    height: 100px;
+    background: var(--border-light);
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.product-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.product-variant {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.product-variant span {
+    background: var(--border-light);
+    padding: 0.125rem 0.5rem;
+    border-radius: 4px;
+}
+
+.product-price {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 100px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-muted);
+}
+
+.empty-state-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state p {
+    font-size: 1rem;
+}
+
+/* ============================================
+   PAYMENT SECTION
+   ============================================ */
+.payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.payment-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    background: var(--bg-white);
+}
+
+.payment-option:hover {
+    border-color: var(--primary-light);
+    background: rgba(99, 102, 241, 0.02);
+}
+
+.payment-option.selected {
+    border-color: var(--primary);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(99, 102, 241, 0.02) 100%);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.payment-option input[type="radio"] {
+    display: none;
+}
+
+.payment-radio {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border-medium);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+}
+
+.payment-option.selected .payment-radio {
+    border-color: var(--primary);
+}
+
+.payment-radio::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: var(--primary);
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0);
+    transition: all var(--transition-fast);
+}
+
+.payment-option.selected .payment-radio::after {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.payment-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.payment-info {
+    flex: 1;
+}
+
+.payment-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.payment-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.125rem;
+}
+
+/* Payment Fields */
+.payment-fields {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    display: none;
+}
+
+.payment-fields.visible {
+    display: block;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Form Fields */
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.form-label .required {
+    color: var(--danger);
+}
+
+.form-input,
+.form-select {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all var(--transition-fast);
+    background: var(--bg-white);
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* GCash Info Section */
+.gcash-payment-info {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+    border-radius: var(--radius-md);
+    border: 1px solid #bae6fd;
+    display: none;
+}
+
+.gcash-payment-info.visible {
+    display: block;
+}
+
+.gcash-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.gcash-header h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #0369a1;
+}
+
+.gcash-qr-container {
+    text-align: center;
+    padding: 1rem;
+    background: var(--bg-white);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+}
+
+.gcash-qr-thumb {
+    max-width: 280px;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+}
+
+.gcash-qr-thumb:hover {
+    transform: scale(1.02);
+}
+
+.gcash-instruction {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #fef3c7;
+    border-radius: var(--radius-sm);
+    border: 1px solid #fcd34d;
+    font-size: 0.85rem;
+    color: #92400e;
+    text-align: center;
+}
+
+/* Payment Proof */
+.proof-upload {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-md);
+    border: 2px dashed var(--border-medium);
+    text-align: center;
+    display: none;
+}
+
+.proof-upload.visible {
+    display: block;
+}
+
+.proof-upload-label {
+    display: block;
+    cursor: pointer;
+    padding: 1rem;
+}
+
+.proof-upload-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.proof-upload-text {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+.proof-upload-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.proof-preview {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: var(--radius-sm);
+    display: none;
+    margin: 1rem auto 0;
+    border: 2px solid var(--border-light);
+}
+
+/* ============================================
+   ORDER SUMMARY SIDEBAR
+   ============================================ */
+.order-summary {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-light);
+    position: sticky;
+    top: 2rem;
+    overflow: hidden;
+}
+
+.summary-header {
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+}
+
+.summary-header h2 {
+    font-size: 1.125rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.summary-body {
+    padding: 1.5rem;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.95rem;
+}
+
+.summary-row:last-of-type {
+    border-bottom: none;
+}
+
+.summary-row.total {
+    margin-top: 0.5rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border-light);
+    border-bottom: none;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.summary-row .label {
+    color: var(--text-secondary);
+}
+
+.summary-row .value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.summary-row.total .value {
+    color: var(--primary);
+    font-size: 1.5rem;
+}
+
+/* Summary Footer */
+.summary-footer {
+    padding: 1.5rem;
+    background: var(--bg-subtle);
+    border-top: 1px solid var(--border-light);
+}
+
+.summary-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Shoes Animation */
+.shoes-animation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-light);
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-secondary {
+    background: var(--bg-white);
+    color: var(--text-primary);
+    border: 2px solid var(--border-light);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-subtle);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.btn-sm {
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.btn-icon {
+    padding: 0.625rem;
+}
+
+/* ============================================
+   MODALS
+   ============================================ */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 6000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.modal-card {
+    background: var(--bg-white);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    box-shadow: var(--shadow-xl);
+    animation: modalIn 0.3s ease;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Order Modal */
+.verifying-animation {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 1.5rem 0;
+}
+
+.verifying-dot {
+    width: 12px;
+    height: 12px;
+    background: var(--primary);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.verifying-dot:nth-child(1) { animation-delay: -0.32s; }
+.verifying-dot:nth-child(2) { animation-delay: -0.16s; }
+.verifying-dot:nth-child(3) { animation-delay: 0; }
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
+}
+
+.check-container {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 1rem;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--success), #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: scale(0);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.3);
+}
+
+.check-container.visible {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.check-container svg {
+    width: 50px;
+    height: 50px;
+    color: white;
+}
+
+/* Map Modal */
+#map-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 6500;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+#map-modal .map-card {
+    width: 95%;
+    max-width: 1000px;
+    height: 85vh;
+    background: var(--bg-white);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-xl);
+}
+
+#map-modal .map-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border-light);
+}
+
+#map-modal .map-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#map-modal .map-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+#map-container {
+    flex: 1;
+}
+
+/* GCash QR Modal */
+#gcash-qr-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 4500;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+#gcash-qr-modal .qr-modal-card {
+    background: var(--bg-white);
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+    width: 95%;
+    text-align: center;
+    box-shadow: var(--shadow-xl);
+}
+
+#gcash-qr-modal .qr-modal-card img {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: var(--radius-md);
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+@media (max-width: 1024px) {
+    .checkout-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .order-summary {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .checkout-wrapper {
+        padding: 1rem 0.75rem;
+    }
+    
+    .checkout-header {
+        padding: 1.5rem 1rem;
+        border-radius: var(--radius-lg);
+    }
+    
+    .checkout-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .checkout-steps {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .card-header {
+        padding: 1rem 1.25rem;
+    }
+    
+    .card-body {
+        padding: 1.25rem;
+    }
+    
+    .product-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .product-image {
+        width: 80px;
+        height: 80px;
+        margin: 0 auto;
+    }
+    
+    .product-price {
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+    
+    .summary-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .address-actions {
+        flex-direction: column;
+    }
+    
+    .address-actions .btn {
+        width: 100%;
+    }
+    
+    .gcash-qr-thumb {
+        max-width: 200px;
+    }
+}
+
+
+@keyframes leftShoeFloat {
+    0%, 100% { transform: translateY(0px) rotate(-8deg); }
+    50% { transform: translateY(-12px) rotate(-8deg); }
+}
+
+@keyframes rightShoeFloat {
+    0%, 100% { transform: translateY(0px) rotate(8deg); }
+    50% { transform: translateY(-12px) rotate(8deg); }
+}
+
+.left-shoe { animation: leftShoeFloat 3s ease-in-out infinite; transform-origin: center; }
+.right-shoe { animation: rightShoeFloat 3s ease-in-out infinite; transform-origin: center; animation-delay: 0.3s; }
     </style>
 </head>
 <body>
-    <div class="checkout-container">
-        <?php if (!empty($debug_html)) { echo $debug_html; } ?>
-        <div class="checkout-header">
-            <h1>Checkout</h1>
-            <p>Review your order and complete payment</p>
-        </div>
-
-        <div class="checkout-content">
-            <div class="checkout-main">
-                <form id="checkout-form" method="POST" action="place_order.php" enctype="multipart/form-data">
-                <!-- Delivery Address -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="card-title-icon">📍</div>
-                            Delivery Address
-                        </div>
+    <div class="checkout-wrapper">
+        <div class="checkout-container">
+            <?php if (!empty($debug_html)) { echo $debug_html; } ?>
+            
+            <!-- Header -->
+            <header class="checkout-header">
+                <h1>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    Checkout
+                </h1>
+                <p>Complete your order securely</p>
+                <div class="checkout-steps">
+                    <div class="step completed">
+                        <span class="step-number">✓</span>
+                        <span>Cart</span>
                     </div>
-                    <div id="address-display" class="address-display">
-                        <?php echo htmlspecialchars($delivery_address ?? 'No address saved yet.', ENT_QUOTES, 'UTF-8'); ?>
+                    <div class="step active">
+                        <span class="step-number">2</span>
+                        <span>Checkout</span>
                     </div>
-                    <textarea id="address-editor" class="address-editor"><?php echo htmlspecialchars($delivery_address ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
-                    <input type="hidden" id="delivery_address_hidden" name="delivery_address" value="<?php echo htmlspecialchars($delivery_address ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                    <div id="address-msg" class="address-msg"></div>
-                    <div class="button-group" style="margin-top: 16px;">
-                        <button id="address-change-btn" class="btn-secondary btn-sm" type="button">Change</button>
-                        <button id="address-pick-map" class="btn-secondary btn-sm" type="button" title="Pick location on map">Pick on map</button>
-                        <button id="address-save-btn" class="btn-primary btn-sm" type="button" style="display: none;">Save</button>
-                        <button id="address-cancel-btn" class="btn-secondary btn-sm" type="button" style="display: none;">Cancel</button>
+                    <div class="step">
+                        <span class="step-number">3</span>
+                        <span>Confirmation</span>
                     </div>
-                    <!-- Hidden fields to hold chosen lat/lng for order submission -->
-                    <input type="hidden" id="delivery_lat" name="delivery_lat" value="">
-                    <input type="hidden" id="delivery_lng" name="delivery_lng" value="">
                 </div>
+            </header>
 
-                <!-- Products -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="card-title-icon">📦</div>
-                            Products
-                        </div>
-                    </div>
-                    <div class="products-list" id="products-list">
-                        <?php if (empty($products)): ?>
-                            <div class="empty-state">
-                                <div class="empty-state-icon">👟</div>
-                                No items selected.
-                            </div>
-                        <?php else: ?>
-                            <?php foreach ($products as $p): ?>
-                                <div class="product-item">
-                                    <div class="product-image">
-                                        <img src="<?php echo htmlspecialchars($p['image_url'] ?? 'upload/product-image/placeholder.png', ENT_QUOTES, 'UTF-8'); ?>" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">
+            <div class="checkout-content">
+                <div class="checkout-main">
+                    <form id="checkout-form" method="POST" action="place_order.php" enctype="multipart/form-data">
+                        
+                        <!-- Delivery Address Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                            <circle cx="12" cy="10" r="3"/>
+                                        </svg>
                                     </div>
-                                    <div class="product-info">
-                                        <div class="product-name"><?php echo htmlspecialchars($p['product_name'], ENT_QUOTES, 'UTF-8'); ?></div>
-                                        <div class="product-qty">Variant: <?php echo intval($p['variant_id']); ?> • <?php echo htmlspecialchars(($p['color_name'] ?? '') . ' • ' . ($p['size_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
-                                    </div>
-                                    <div class="product-price">₱ <?php echo number_format($p['price'],2); ?></div>
+                                    Delivery Address
                                 </div>
-                                <input type="hidden" name="selected_items[]" value="<?php echo intval($p['variant_id']); ?>">
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="address-display" class="address-display <?php echo empty($delivery_address) ? 'empty' : ''; ?>">
+                                    <?php echo htmlspecialchars($delivery_address ?? 'No address saved yet. Please add your delivery address.', ENT_QUOTES, 'UTF-8'); ?>
+                                </div>
+                                <textarea id="address-editor" class="address-editor form-input"><?php echo htmlspecialchars($delivery_address ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                <input type="hidden" id="delivery_address_hidden" name="delivery_address" value="<?php echo htmlspecialchars($delivery_address ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                <div id="address-msg" class="address-msg"></div>
+                                <div class="address-actions">
+                                    <button id="address-change-btn" class="btn btn-secondary btn-sm" type="button">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                        </svg>
+                                        Edit Address
+                                    </button>
+                                    <button id="address-pick-map" class="btn btn-secondary btn-sm" type="button">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                                            <line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
+                                        </svg>
+                                        Pick on Map
+                                    </button>
+                                    <button id="address-save-btn" class="btn btn-primary btn-sm" type="button" style="display: none;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                            <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                                        </svg>
+                                        Save
+                                    </button>
+                                    <button id="address-cancel-btn" class="btn btn-secondary btn-sm" type="button" style="display: none;">Cancel</button>
+                                </div>
+                                <input type="hidden" id="delivery_lat" name="delivery_lat" value="">
+                                <input type="hidden" id="delivery_lng" name="delivery_lng" value="">
+                            </div>
+                        </div>
 
-                <!-- Payment Method -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <div class="card-title-icon">💳</div>
-                            Payment Method
-                        </div>
-                    </div>
-                    <div class="payment-methods">
-                        <label class="payment-option">
-                            <input type="radio" name="payment" value="gcash" checked>
-                            <span class="payment-label">GCash (Mobile Wallet)</span>
-                        </label>
-                        <label class="payment-option">
-                            <input type="radio" name="payment" value="bank">
-                            <span class="payment-label">Online Bank Transfer</span>
-                        </label>
-                    </div>
-
-                    <!-- GCash Fields -->
-                    <div id="payment-gcash" class="payment-fields visible">
-                        <div class="form-group">
-                            <label for="gcash_number">GCash Mobile Number</label>
-                            <input type="tel" id="gcash_number" name="gcash_number" placeholder="09XX XXX XXXX">
-                        </div>
-                        <div class="form-group">
-                            <label for="gcash_ref">Transaction Reference (optional)</label>
-                            <input type="text" id="gcash_ref" name="gcash_ref" placeholder="Enter reference number">
-                        </div>
-                    </div>
-
-                    <!-- Bank Transfer Fields -->
-                    <div id="payment-bank" class="payment-fields">
-                        <div class="form-group">
-                            <label for="bank_name">Select Bank</label>
-                            <select id="bank_name" name="bank_name">
-                                <option value="">Choose a bank...</option>
-                                <?php
-                                if (!empty($bank_accounts)) {
-                                    foreach ($bank_accounts as $bcode => $binfo) {
-                                        $label = htmlspecialchars($binfo['bank_name'] ?: $bcode, ENT_QUOTES, 'UTF-8');
-                                        echo "<option value=\"" . htmlspecialchars($bcode, ENT_QUOTES, 'UTF-8') . "\">$label</option>\n";
-                                    }
-                                } else {
-                                    // fallback static options
-                                    echo "<option value=\"bdo\">BDO</option>\n";
-                                    echo "<option value=\"bpi\">BPI</option>\n";
-                                    echo "<option value=\"metrobank\">Metrobank</option>\n";
-                                    echo "<option value=\"unionbank\">UnionBank</option>\n";
-                                    echo "<option value=\"other\">Other Bank</option>\n";
-                                }
-                                ?>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="bank_account_name">Account Name</label>
-                            <input type="text" id="bank_account_name" name="bank_account_name" placeholder="Enter account holder name">
-                        </div>
-                        <div class="form-group">
-                            <label for="bank_account_number">Account Number</label>
-                            <input type="text" id="bank_account_number" name="bank_account_number" placeholder="Enter account number">
-                        </div>
-                    </div>
-
-                    <!-- GCash info & Payment proof -->
-                    <div id="gcash-info" class="gcash-info">
-                        <div class="form-group">
-                            <label>Send payment to</label>
-                            <div class="gcash-row">
-                                <div id="store-gcash-number" class="gcash-pill <?php echo !empty($store_gcash_qr) ? 'has-qr' : ''; ?>">
-                                   
-                                    
-                                    <?php if (!empty($store_gcash_qr)): ?>
-                                        <a id="store-gcash-qr-link" href="<?php echo htmlspecialchars($store_gcash_qr, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" style="margin-left:8px;">
-                                            <img id="store-gcash-qr-thumb" class="gcash-qr-thumb" src="<?php echo htmlspecialchars($store_gcash_qr, ENT_QUOTES, 'UTF-8'); ?>" alt="GCash QR">
-                                        </a>
+                        <!-- Products Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                                        </svg>
+                                    </div>
+                                    Your Items
+                                </div>
+                                <span style="font-size: 0.875rem; color: var(--text-muted);"><?php echo count($products); ?> item(s)</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="products-list" id="products-list">
+                                    <?php if (empty($products)): ?>
+                                        <div class="empty-state">
+                                            <div class="empty-state-icon">👟</div>
+                                            <p>No items selected for checkout</p>
+                                        </div>
+                                    <?php else: ?>
+                                        <?php foreach ($products as $p): ?>
+                                            <div class="product-item">
+                                                <div class="product-image">
+                                                    <img src="<?php echo htmlspecialchars($p['image_url'] ?? 'upload/product-image/placeholder.png', ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($p['product_name'], ENT_QUOTES, 'UTF-8'); ?>">
+                                                </div>
+                                                <div class="product-details">
+                                                    <div class="product-name"><?php echo htmlspecialchars($p['product_name'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                                    <div class="product-variant">
+                                                        <span><?php echo htmlspecialchars($p['color_name'] ?? 'N/A', ENT_QUOTES, 'UTF-8'); ?></span>
+                                                        <span><?php echo htmlspecialchars($p['size_name'] ?? 'N/A', ENT_QUOTES, 'UTF-8'); ?></span>
+                                                    </div>
+                                                </div>
+                                                <div class="product-price">₱<?php echo number_format($p['price'], 2); ?></div>
+                                            </div>
+                                            <input type="hidden" name="selected_items[]" value="<?php echo intval($p['variant_id']); ?>">
+                                        <?php endforeach; ?>
                                     <?php endif; ?>
                                 </div>
-                                
                             </div>
-                            <div class="gcash-instruction">After sending payment, attach your receipt below and include the reference number.</div>
                         </div>
-                    </div>
 
-                    <div id="payment-proof-row" class="payment-proof-row">
-                        <div class="form-group">
-                                <label for="payment_proof">Attach payment proof (screenshot) <span style="color:#dc2626">*</span></label>
-                                <input type="file" id="payment_proof" name="payment_proof" accept="image/*" />
+                        <!-- Payment Method Card -->
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">
+                                    <div class="card-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                            <line x1="1" y1="10" x2="23" y2="10"/>
+                                        </svg>
+                                    </div>
+                                    Payment Method
+                                </div>
                             </div>
-                        <div style="text-align:center;margin-top:8px;">
-                            <img id="proof-preview" class="proof-preview" src="" alt="Proof preview" />
-                        </div>
-                    </div>
+                            <div class="card-body">
+                                <div class="payment-methods">
+                                    <label class="payment-option selected">
+                                        <input type="radio" name="payment" value="gcash" checked>
+                                        <span class="payment-radio"></span>
+                                        <span class="payment-icon">📱</span>
+                                        <span class="payment-info">
+                                            <span class="payment-label">GCash</span>
+                                            <span class="payment-desc">Pay via mobile wallet</span>
+                                        </span>
+                                    </label>
+                                    <label class="payment-option">
+                                        <input type="radio" name="payment" value="bank">
+                                        <span class="payment-radio"></span>
+                                        <span class="payment-icon">🏦</span>
+                                        <span class="payment-info">
+                                            <span class="payment-label">Bank Transfer</span>
+                                            <span class="payment-desc">Transfer to our bank account</span>
+                                        </span>
+                                    </label>
+                                </div>
 
-                    <!-- GCash QR view modal (hidden) -->
-                    <div id="gcash-qr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:4500;">
-                        <div style="background:#fff;padding:12px;border-radius:10px;max-width:860px;width:92%;text-align:center;">
-                            <div style="text-align:right;"><button id="gcash-qr-close" class="copy-btn" style="background:#f3f4f6;">Close</button></div>
-                            <img id="gcash-qr-large" src="" alt="GCash QR" style="max-width:100%;width:auto;max-height:80vh;border-radius:8px;margin-top:8px;" />
-                            <div style="margin-top:8px;color:#374151;font-size:13px;">Right click image & choose "Open image in new tab" to save.</div>
-                        </div>
-                    </div>
-                </div>
-                        <!-- Map modal for choosing delivery location -->
-                        <div id="map-modal" aria-hidden="true">
-                            <div class="map-card" role="dialog" aria-modal="true" aria-labelledby="map-modal-title">
-                                <div class="map-header">
-                                    <div style="font-weight:700;">Choose delivery location</div>
-                                    <div class="map-actions">
-                                        <button type="button" id="map-center-btn" class="copy-btn">Center</button>
-                                        <button type="button" id="map-save-btn" class="btn-primary btn-sm">Save selection</button>
-                                        <button type="button" id="map-close-btn" class="btn-secondary btn-sm">Cancel</button>
+                                <!-- GCash Fields -->
+                                <div id="payment-gcash" class="payment-fields visible">
+                                    <div class="form-group">
+                                        <label class="form-label" for="gcash_number">Your GCash Number <span class="required">*</span></label>
+                                        <input type="tel" id="gcash_number" name="gcash_number" class="form-input" placeholder="09XX XXX XXXX">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="gcash_ref">Reference Number (optional)</label>
+                                        <input type="text" id="gcash_ref" name="gcash_ref" class="form-input" placeholder="Enter transaction reference">
                                     </div>
                                 </div>
-                                <div id="map-container"></div>
+
+                                <!-- Bank Transfer Fields -->
+                                <div id="payment-bank" class="payment-fields">
+                                    <div class="form-group">
+                                        <label class="form-label" for="bank_name">Select Bank <span class="required">*</span></label>
+                                        <select id="bank_name" name="bank_name" class="form-select">
+                                            <option value="">Choose a bank...</option>
+                                            <?php
+                                            if (!empty($bank_accounts)) {
+                                                foreach ($bank_accounts as $bcode => $binfo) {
+                                                    $label = htmlspecialchars($binfo['bank_name'] ?: $bcode, ENT_QUOTES, 'UTF-8');
+                                                    echo "<option value=\"" . htmlspecialchars($bcode, ENT_QUOTES, 'UTF-8') . "\">$label</option>\n";
+                                                }
+                                            } else {
+                                                echo "<option value=\"bdo\">BDO</option>\n";
+                                                echo "<option value=\"bpi\">BPI</option>\n";
+                                                echo "<option value=\"metrobank\">Metrobank</option>\n";
+                                                echo "<option value=\"unionbank\">UnionBank</option>\n";
+                                                echo "<option value=\"other\">Other Bank</option>\n";
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="bank_account_name">Account Holder Name <span class="required">*</span></label>
+                                        <input type="text" id="bank_account_name" name="bank_account_name" class="form-input" placeholder="Enter account holder name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="bank_account_number">Account Number <span class="required">*</span></label>
+                                        <input type="text" id="bank_account_number" name="bank_account_number" class="form-input" placeholder="Enter account number">
+                                    </div>
+                                </div>
+
+                                <!-- GCash Payment Info -->
+                                <div id="gcash-info" class="gcash-payment-info">
+                                    <div class="gcash-header">
+                                        <span style="font-size: 1.5rem;">💳</span>
+                                        <h4>Send Payment To</h4>
+                                    </div>
+                                    <?php if (!empty($store_gcash_qr)): ?>
+                                        <div class="gcash-qr-container">
+                                            <a id="store-gcash-qr-link" href="<?php echo htmlspecialchars($store_gcash_qr, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+                                                <img id="store-gcash-qr-thumb" class="gcash-qr-thumb" src="<?php echo htmlspecialchars($store_gcash_qr, ENT_QUOTES, 'UTF-8'); ?>" alt="GCash QR Code">
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="gcash-instruction">
+                                        📋 After sending payment, attach your receipt screenshot below and include the reference number.
+                                    </div>
+                                </div>
+
+                                <!-- Payment Proof Upload -->
+                                <div id="payment-proof-row" class="proof-upload">
+                                    <label class="proof-upload-label" for="payment_proof">
+                                        <div class="proof-upload-icon">📸</div>
+                                        <div class="proof-upload-text">Upload Payment Proof</div>
+                                        <div class="proof-upload-hint">Click to select or drag & drop your screenshot</div>
+                                    </label>
+                                    <input type="file" id="payment_proof" name="payment_proof" accept="image/*" style="display: none;">
+                                    <img id="proof-preview" class="proof-preview" src="" alt="Proof preview">
+                                </div>
                             </div>
                         </div>
 
-                <div class="button-group">
-                    <button id="place-order-btn" type="submit" class="btn-primary">Place Order</button>
-                    <button type="button" class="btn-secondary" onclick="location.href='cart.php'">Edit Cart</button>
-                </div>
-                </form>
-            </div>
-
-            <!-- Order Summary Sidebar -->
-            <div class="order-summary">
-                <div class="summary-title">Order Summary</div>
-                <div class="summary-row">
-                    <span>Subtotal</span>
-                    <span class="summary-amount">₱ <?php echo number_format((float)$subtotal,2); ?></span>
-                </div>
-                <div class="summary-row">
-                    <span>Shipping</span>
-                    <span class="summary-amount">₱ 0.00</span>
-                </div>
-                <div class="summary-row">
-                    <span>Tax (12%)</span>
-                    <span class="summary-amount">₱ <?php echo number_format((float)($subtotal * 0.12),2); ?></span>
-                </div>
-                <div class="summary-row total">
-                    <span>Total</span>
-                    <span class="summary-amount">₱ <?php echo number_format((float)($subtotal * 1.12),2); ?></span>
+                        <!-- Action Buttons (Mobile) -->
+                        <div class="card" style="display: none;" id="mobile-actions">
+                            <div class="card-body">
+                                <div class="summary-actions">
+                                    <button id="place-order-btn-mobile" type="submit" class="btn btn-primary btn-block">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M5 12h14"/><path d="M12 5l7 7-7 7"/>
+                                        </svg>
+                                        Place Order
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-block" onclick="location.href='cart.php'">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
+                                        </svg>
+                                        Back to Cart
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
-                <div class="shoes-animation-container">
-                    <!-- SVG animation kept the same as before -->
-                    <svg class="shoes-svg" width="130" height="130" viewBox="0 0 130 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <style>
-                                @keyframes leftShoeFloat {
-                                    0%, 100% { transform: translateY(0px) rotate(-8deg); }
-                                    50% { transform: translateY(-15px) rotate(-8deg); }
-                                }
-                                @keyframes rightShoeFloat {
-                                    0%, 100% { transform: translateY(0px) rotate(8deg); }
-                                    50% { transform: translateY(-15px) rotate(8deg); }
-                                }
-                                .left-shoe {
-                                    animation: leftShoeFloat 3s ease-in-out infinite;
-                                    transform-origin: center;
-                                }
-                                .right-shoe {
-                                    animation: rightShoeFloat 3s ease-in-out infinite;
-                                    transform-origin: center;
-                                }
-                            </style>
-                        </defs>
-                        <!-- Left Shoe -->
-                        <g class="left-shoe">
-                            <ellipse cx="35" cy="85" rx="22" ry="8" fill="#1a1a1a" opacity="0.3"/>
-                            <path d="M 18 70 Q 15 60 20 50 Q 25 45 32 48 Q 38 42 45 48 Q 48 52 45 65 Q 42 75 35 82 Q 28 85 18 70 Z" fill="#1a1a1a" stroke="#0d0d0d" stroke-width="1.5"/>
-                            <path d="M 25 55 Q 28 52 35 54" fill="none" stroke="#e5e7eb" stroke-width="1.5" stroke-linecap="round"/>
-                            <circle cx="32" cy="62" r="2.5" fill="#e5e7eb"/>
-                        </g>
-                        <!-- Right Shoe -->
-                        <g class="right-shoe">
-                            <ellipse cx="95" cy="85" rx="22" ry="8" fill="#1a1a1a" opacity="0.3"/>
-                            <path d="M 112 70 Q 115 60 110 50 Q 105 45 98 48 Q 92 42 85 48 Q 82 52 85 65 Q 88 75 95 82 Q 102 85 112 70 Z" fill="#1a1a1a" stroke="#0d0d0d" stroke-width="1.5"/>
-                            <path d="M 105 55 Q 102 52 95 54" fill="none" stroke="#e5e7eb" stroke-width="1.5" stroke-linecap="round"/>
-                            <circle cx="98" cy="62" r="2.5" fill="#e5e7eb"/>
-                        </g>
-                        <circle cx="65" cy="65" r="55" fill="none" stroke="#1a1a1a" stroke-width="1" opacity="0.1"/>
-                    </svg>
-                </div>
+                <!-- Order Summary Sidebar -->
+                <aside class="order-summary">
+                    <div class="summary-header">
+                        <h2>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                            Order Summary
+                        </h2>
+                    </div>
+                    <div class="summary-body">
+                        <div class="summary-row">
+                            <span class="label">Subtotal</span>
+                            <span class="value">₱<?php echo number_format((float)$subtotal, 2); ?></span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">Shipping</span>
+                            <span class="value" style="color: var(--success);">FREE</span>
+                        </div>
+                        <div class="summary-row">
+                            <span class="label">Tax (12% VAT)</span>
+                            <span class="value">₱<?php echo number_format((float)($subtotal * 0.12), 2); ?></span>
+                        </div>
+                        <div class="summary-row total">
+                            <span class="label">Total</span>
+                            <span class="value">₱<?php echo number_format((float)($subtotal * 1.12), 2); ?></span>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-footer">
+                        <div class="summary-actions">
+                            <button id="place-order-btn" type="submit" form="checkout-form" class="btn btn-primary btn-block">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                    <line x1="1" y1="10" x2="23" y2="10"/>
+                                </svg>
+                                Complete Purchase
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-block" onclick="location.href='cart.php'">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
+                                </svg>
+                                Edit Cart
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="shoes-animation">
+                        <svg width="120" height="120" viewBox="0 0 130 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <g class="left-shoe">
+                                <ellipse cx="35" cy="85" rx="22" ry="8" fill="#6366f1" opacity="0.2"/>
+                                <path d="M 18 70 Q 15 60 20 50 Q 25 45 32 48 Q 38 42 45 48 Q 48 52 45 65 Q 42 75 35 82 Q 28 85 18 70 Z" fill="#6366f1" stroke="#4f46e5" stroke-width="1.5"/>
+                                <path d="M 25 55 Q 28 52 35 54" fill="none" stroke="#e0e7ff" stroke-width="1.5" stroke-linecap="round"/>
+                                <circle cx="32" cy="62" r="2.5" fill="#e0e7ff"/>
+                            </g>
+                            <g class="right-shoe">
+                                <ellipse cx="95" cy="85" rx="22" ry="8" fill="#6366f1" opacity="0.2"/>
+                                <path d="M 112 70 Q 115 60 110 50 Q 105 45 98 48 Q 92 42 85 48 Q 82 52 85 65 Q 88 75 95 82 Q 102 85 112 70 Z" fill="#6366f1" stroke="#4f46e5" stroke-width="1.5"/>
+                                <path d="M 105 55 Q 102 52 95 54" fill="none" stroke="#e0e7ff" stroke-width="1.5" stroke-linecap="round"/>
+                                <circle cx="98" cy="62" r="2.5" fill="#e0e7ff"/>
+                            </g>
+                        </svg>
+                    </div>
+                </aside>
             </div>
         </div>
     </div>
 
-    <!-- Order modal (verifying / thank you) -->
-    <div id="order-modal" aria-hidden="true">
-        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="order-modal-title">
-            <div id="modal-verifying" style="display:block;">
-                <div style="font-size:14px;color:#6b7280;margin-bottom:14px;">Verifying payment</div>
-                <div>
+    <!-- Order Processing Modal -->
+    <div id="order-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true">
+            <div id="modal-verifying">
+                <div style="font-size: 1rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Processing Your Order</div>
+                <div class="verifying-animation">
                     <span class="verifying-dot"></span>
                     <span class="verifying-dot"></span>
                     <span class="verifying-dot"></span>
                 </div>
-                <div id="modal-message" style="margin-top:16px;color:#374151;font-size:15px;">Please wait while we process your order...</div>
+                <div id="modal-message" style="color: var(--text-primary); font-size: 0.95rem;">Please wait while we verify your payment...</div>
             </div>
-
-            <div id="modal-success" style="display:none;">
-                <div class="check-container" id="check-container" role="img" aria-hidden="true">
-                    <svg class="check-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 24l6 6 18-18" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+            <div id="modal-success" style="display: none;">
+                <div class="check-container" id="check-container">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
                     </svg>
                 </div>
-                <div style="font-size:20px;font-weight:700;margin-top:8px;">Thank you for purchasing!</div>
-                <div id="modal-order-id" style="margin-top:8px;color:#6b7280;">Order #...</div>
+                <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">Order Placed!</div>
+                <div style="color: var(--text-secondary); margin-top: 0.5rem;">Thank you for your purchase</div>
+                <div id="modal-order-id" style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: var(--bg-subtle); border-radius: var(--radius-sm); font-weight: 600; color: var(--primary);">Order #...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Modal -->
+    <div id="map-modal" aria-hidden="true">
+        <div class="map-card" role="dialog" aria-modal="true">
+            <div class="map-header">
+                <h3>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                        <circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    Select Delivery Location
+                </h3>
+                <div class="map-actions">
+                    <button type="button" id="map-center-btn" class="btn btn-secondary btn-sm">Center</button>
+                    <button type="button" id="map-save-btn" class="btn btn-primary btn-sm">Confirm Location</button>
+                    <button type="button" id="map-close-btn" class="btn btn-secondary btn-sm">Cancel</button>
+                </div>
+            </div>
+            <div id="map-container"></div>
+        </div>
+    </div>
+
+    <!-- GCash QR Modal -->
+    <div id="gcash-qr-modal">
+        <div class="qr-modal-card">
+            <div style="text-align: right; margin-bottom: 0.5rem;">
+                <button id="gcash-qr-close" class="btn btn-secondary btn-sm">Close</button>
+            </div>
+            <img id="gcash-qr-large" src="" alt="GCash QR Code">
+            <div style="margin-top: 1rem; color: var(--text-muted); font-size: 0.85rem;">
+                Scan this QR code with your GCash app to pay
             </div>
         </div>
     </div>
@@ -1195,27 +1748,46 @@ if ($q) {
             var val = document.querySelector('input[name="payment"]:checked')?.value || 'gcash';
             var g = document.getElementById('payment-gcash');
             var b = document.getElementById('payment-bank');
-            if (g) g.style.display = (val === 'gcash') ? 'block' : 'none';
-            if (b) b.style.display = (val === 'bank') ? 'block' : 'none';
+            
+            // Update payment fields visibility
+            if (g) g.classList.toggle('visible', val === 'gcash');
+            if (b) b.classList.toggle('visible', val === 'bank');
+            
             var gcashInfo = document.getElementById('gcash-info');
             var proofRow = document.getElementById('payment-proof-row');
-            if (gcashInfo) gcashInfo.style.display = (val === 'gcash') ? 'block' : 'none';
-            if (proofRow) proofRow.style.display = (val === 'gcash' || val === 'bank') ? 'block' : 'none';
-            var gcashTextEl = document.getElementById('store-gcash-text');
-            if (gcashTextEl && (!gcashTextEl.textContent || gcashTextEl.textContent.trim() === '')) gcashTextEl.textContent = STORE_GCASH || '';
+            if (gcashInfo) gcashInfo.classList.toggle('visible', val === 'gcash');
+            if (proofRow) proofRow.classList.toggle('visible', val === 'gcash' || val === 'bank');
+            
+            // Update payment option selected states
+            document.querySelectorAll('.payment-option').forEach(function(opt) {
+                var radio = opt.querySelector('input[type="radio"]');
+                opt.classList.toggle('selected', radio && radio.checked);
+            });
         }
 
         document.addEventListener('DOMContentLoaded', function(){
             updatePaymentFields();
+            
+            // Payment method change handlers
             document.querySelectorAll('input[name="payment"]').forEach(function(r){
                 r.addEventListener('change', updatePaymentFields);
+            });
+            
+            // Also handle clicks on payment option labels
+            document.querySelectorAll('.payment-option').forEach(function(opt) {
+                opt.addEventListener('click', function() {
+                    var radio = opt.querySelector('input[type="radio"]');
+                    if (radio) {
+                        radio.checked = true;
+                        updatePaymentFields();
+                    }
+                });
             });
 
             // Bank select logic
             var bankSelect = document.getElementById('bank_name');
             var bankAccountInput = document.getElementById('bank_account_number');
             var bankAccountNameInput = document.getElementById('bank_account_name');
-            var selectedBankDisplay = document.getElementById('selected-bank-display');
 
             function onBankChange() {
                 if (!bankSelect) return;
@@ -1246,8 +1818,8 @@ if ($q) {
                 editor.style.display = 'block';
                 display.style.display = 'none';
                 changeBtn.style.display = 'none';
-                saveBtn.style.display = 'inline-block';
-                cancelBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'inline-flex';
+                cancelBtn.style.display = 'inline-flex';
                 editor.focus();
             }
 
@@ -1255,7 +1827,7 @@ if ($q) {
                 if (!editor || !display) return;
                 editor.style.display = 'none';
                 display.style.display = 'block';
-                changeBtn.style.display = 'inline-block';
+                changeBtn.style.display = 'inline-flex';
                 saveBtn.style.display = 'none';
                 cancelBtn.style.display = 'none';
                 msg.style.display = 'none';
@@ -1278,7 +1850,7 @@ if ($q) {
                 if (!editor) return;
                 var val = editor.value.trim();
                 if (val === '') {
-                    msg.style.color = '#dc2626';
+                    msg.className = 'address-msg error';
                     msg.textContent = 'Address cannot be empty';
                     msg.style.display = 'block';
                     return;
@@ -1287,7 +1859,6 @@ if ($q) {
                 var fd = new FormData();
                 fd.append('action', 'save_address');
                 fd.append('delivery_address', val);
-                // include lat/lng if chosen via map picker
                 fd.append('latitude', document.getElementById('delivery_lat')?.value || '');
                 fd.append('longitude', document.getElementById('delivery_lng')?.value || '');
                 fetch('checkout.php', { method: 'POST', body: fd })
@@ -1295,7 +1866,7 @@ if ($q) {
                         return resp.text().then(function(text){
                             if (!text) return null;
                             try { return JSON.parse(text); }
-                            catch (e) { console.warn('save_address: invalid JSON response', text); return { success: false, error: (text || 'Invalid JSON response') }; }
+                            catch (e) { return { success: false, error: (text || 'Invalid JSON response') }; }
                         });
                     })
                     .then(function(json){
@@ -1307,23 +1878,22 @@ if ($q) {
                                 display.innerHTML = (esc || '').replace(/\r?\n/g,'<br>');
                             }
                             if (hidden) hidden.value = json.address || '';
-                            // Update lat/lng hidden fields if server returned them
                             if (json.latitude !== undefined) document.getElementById('delivery_lat').value = json.latitude;
                             if (json.longitude !== undefined) document.getElementById('delivery_lng').value = json.longitude;
                             hideEditor();
-                            msg.style.color = '#16a34a';
+                            msg.className = 'address-msg success';
                             msg.textContent = 'Address saved successfully!';
                             msg.style.display = 'block';
                             setTimeout(function(){ msg.style.display = 'none'; }, 3000);
                         } else {
-                            msg.style.color = '#dc2626';
+                            msg.className = 'address-msg error';
                             msg.textContent = (json && json.error) ? json.error : 'Save failed';
                             msg.style.display = 'block';
                         }
                     }).catch(function(err){
                         console.error('save_address network error', err);
                         saveBtn.disabled = false;
-                        msg.style.color = '#dc2626';
+                        msg.className = 'address-msg error';
                         msg.textContent = 'Network error';
                         msg.style.display = 'block';
                     });
@@ -1643,6 +2213,7 @@ if ($q) {
 
         });
     </script>
+    <?php include __DIR__ . '/partials/chatbot.php'; ?>
 </body>
 </html>
 <?php

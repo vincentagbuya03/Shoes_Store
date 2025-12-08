@@ -1,64 +1,120 @@
 /**
  * ShoeTakels AI Chatbot
- * Persistent chat with OpenAI integration
+ * Persistent chat with AI integration
+ * Fixed for hosting compatibility
  */
 
 (function() {
     'use strict';
 
+    // Get base URL dynamically for hosting compatibility
+    function getBaseUrl() {
+        // Method 1: Try to find chatbot.js script source
+        var scripts = document.getElementsByTagName('script');
+        for (var i = 0; i < scripts.length; i++) {
+            var src = scripts[i].src;
+            if (src && src.indexOf('chatbot.js') !== -1) {
+                var baseUrl = src.replace(/asset\/script\/chatbot\.js.*$/, '');
+                if (baseUrl && baseUrl.length > 0) {
+                    console.log('Chatbot: Base URL from script src:', baseUrl);
+                    return baseUrl;
+                }
+            }
+        }
+        
+        // Method 2: Use current location and determine base
+        var loc = window.location;
+        var pathname = loc.pathname;
+        
+        // Check if we're in Shoes_Store subdirectory
+        if (pathname.indexOf('/Shoes_Store/') !== -1) {
+            console.log('Chatbot: Detected Shoes_Store subdirectory');
+            return loc.protocol + '//' + loc.host + '/Shoes_Store/';
+        }
+        
+        // Otherwise assume root
+        console.log('Chatbot: Using root directory');
+        return loc.protocol + '//' + loc.host + '/';
+    }
+
     // Configuration
-    const CONFIG = {
+    var CONFIG = {
         storageKey: 'shoetakels_chatbot',
-        apiEndpoint: 'api/chatbot.php',
+        apiEndpoint: getBaseUrl() + 'api/chatbot.php',
         maxMessages: 50,
         welcomeMessage: "Hi there! 👋 I'm the ShoeTakels Assistant. How can I help you find the perfect shoes today?"
     };
 
-    // DOM Elements
-    const elements = {
-        container: document.getElementById('ai-chatbot-container'),
-        toggle: document.getElementById('chatbot-toggle'),
-        window: document.getElementById('chatbot-window'),
-        minimize: document.getElementById('chatbot-minimize'),
-        messages: document.getElementById('chatbot-messages'),
-        form: document.getElementById('chatbot-form'),
-        input: document.getElementById('chatbot-input'),
-        send: document.getElementById('chatbot-send'),
-        typing: document.getElementById('chatbot-typing'),
-        badge: document.getElementById('chatbot-badge')
-    };
+    console.log('Chatbot CONFIG:', CONFIG);
+
+    // DOM Elements - wait for them to be available
+    var elements = {};
 
     // State
-    let state = {
+    var state = {
         isOpen: false,
         messages: [],
-        isLoading: false
+        isLoading: false,
+        initialized: false
     };
+
+    // Initialize DOM elements
+    function initElements() {
+        elements.container = document.getElementById('ai-chatbot-container');
+        elements.toggle = document.getElementById('chatbot-toggle');
+        elements.window = document.getElementById('chatbot-window');
+        elements.minimize = document.getElementById('chatbot-minimize');
+        elements.messages = document.getElementById('chatbot-messages');
+        elements.form = document.getElementById('chatbot-form');
+        elements.input = document.getElementById('chatbot-input');
+        elements.send = document.getElementById('chatbot-send');
+        elements.typing = document.getElementById('chatbot-typing');
+        elements.badge = document.getElementById('chatbot-badge');
+
+        // Check if all required elements exist
+        return elements.container && elements.toggle && elements.window && 
+               elements.messages && elements.form && elements.input;
+    }
 
     // Initialize
     function init() {
+        if (state.initialized) return;
+        
+        if (!initElements()) {
+            console.warn('Chatbot: Some elements not found, retrying...');
+            setTimeout(init, 100);
+            return;
+        }
+
+        console.log('Chatbot: Initializing with base URL:', CONFIG.apiEndpoint);
+        
         loadState();
         renderMessages();
         restoreWindowState();
         bindEvents();
         
         // Show welcome message if no messages
-        if (state. messages.length === 0) {
+        if (state.messages.length === 0) {
             addBotMessage(CONFIG.welcomeMessage);
         }
+
+        state.initialized = true;
+        console.log('Chatbot initialized successfully');
     }
 
     // Load state from localStorage
     function loadState() {
         try {
-            const saved = localStorage.getItem(CONFIG.storageKey);
+            var saved = localStorage.getItem(CONFIG.storageKey);
             if (saved) {
-                const parsed = JSON.parse(saved);
-                state. messages = parsed.messages || [];
+                var parsed = JSON.parse(saved);
+                state.messages = parsed.messages || [];
                 state.isOpen = parsed.isOpen || false;
             }
         } catch (e) {
             console.warn('Failed to load chatbot state:', e);
+            state.messages = [];
+            state.isOpen = false;
         }
     }
 
@@ -66,8 +122,8 @@
     function saveState() {
         try {
             // Limit stored messages
-            const messagesToSave = state.messages.slice(-CONFIG.maxMessages);
-            localStorage.setItem(CONFIG.storageKey, JSON. stringify({
+            var messagesToSave = state.messages.slice(-CONFIG.maxMessages);
+            localStorage.setItem(CONFIG.storageKey, JSON.stringify({
                 messages: messagesToSave,
                 isOpen: state.isOpen,
                 timestamp: Date.now()
@@ -86,13 +142,21 @@
 
     // Bind event listeners
     function bindEvents() {
-        elements.toggle.addEventListener('click', toggleChat);
-        elements. minimize.addEventListener('click', closeChat);
-        elements.form.addEventListener('submit', handleSubmit);
+        if (elements.toggle) {
+            elements.toggle.addEventListener('click', toggleChat);
+        }
+        
+        if (elements.minimize) {
+            elements.minimize.addEventListener('click', closeChat);
+        }
+        
+        if (elements.form) {
+            elements.form.addEventListener('submit', handleSubmit);
+        }
         
         // Close on escape key
-        document. addEventListener('keydown', (e) => {
-            if (e. key === 'Escape' && state.isOpen) {
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && state.isOpen) {
                 closeChat();
             }
         });
@@ -108,14 +172,22 @@
     }
 
     // Open chat
-    function openChat(animate = true) {
+    function openChat(animate) {
         state.isOpen = true;
-        elements.window.classList.add('open');
-        elements.toggle.classList.add('active');
-        elements.badge.style.display = 'none';
+        if (elements.window) {
+            elements.window.classList.add('open');
+        }
+        if (elements.toggle) {
+            elements.toggle.classList.add('active');
+        }
+        if (elements.badge) {
+            elements.badge.style.display = 'none';
+        }
         
-        if (animate) {
-            elements. input.focus();
+        if (animate && elements.input) {
+            setTimeout(function() {
+                elements.input.focus();
+            }, 300);
         }
         
         scrollToBottom();
@@ -125,29 +197,35 @@
     // Close chat
     function closeChat() {
         state.isOpen = false;
-        elements. window.classList.remove('open');
-        elements.toggle.classList.remove('active');
+        if (elements.window) {
+            elements.window.classList.remove('open');
+        }
+        if (elements.toggle) {
+            elements.toggle.classList.remove('active');
+        }
         saveState();
     }
 
     // Handle form submission
-    async function handleSubmit(e) {
+    function handleSubmit(e) {
         e.preventDefault();
         
-        const message = elements.input. value.trim();
-        if (! message || state.isLoading) return;
+        if (!elements.input) return;
+        
+        var message = elements.input.value.trim();
+        if (!message || state.isLoading) return;
 
         // Add user message
         addUserMessage(message);
         elements.input.value = '';
         
         // Send to API
-        await sendMessage(message);
+        sendMessage(message);
     }
 
     // Add user message
     function addUserMessage(text) {
-        const message = {
+        var message = {
             type: 'user',
             text: text,
             timestamp: new Date().toISOString()
@@ -160,10 +238,10 @@
 
     // Add bot message
     function addBotMessage(text) {
-        const message = {
+        var message = {
             type: 'bot',
             text: text,
-            timestamp: new Date(). toISOString()
+            timestamp: new Date().toISOString()
         };
         state.messages.push(message);
         renderMessage(message);
@@ -172,117 +250,162 @@
     }
 
     // Send message to API
-    async function sendMessage(userMessage) {
+    function sendMessage(userMessage) {
         state.isLoading = true;
         showTyping();
-        elements.send.disabled = true;
-        elements.send.classList.add('loading');
-
-        try {
-            const response = await fetch(CONFIG.apiEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    message: userMessage,
-                    history: state.messages. slice(-10) // Send last 10 messages for context
-                })
-            });
-
-            const data = await response. json();
-            
-            hideTyping();
-            
-            if (data. success && data.response) {
-                addBotMessage(data.response);
-            } else {
-                addBotMessage(data.error || "I'm sorry, I couldn't process that. Please try again.");
-            }
-        } catch (error) {
-            console.error('Chatbot API error:', error);
-            hideTyping();
-            addBotMessage("I'm having trouble connecting right now. Please try again in a moment.");
-        } finally {
-            state. isLoading = false;
-            elements. send.disabled = false;
-            elements. send.classList.remove('loading');
+        
+        if (elements.send) {
+            elements.send.disabled = true;
+            elements.send.classList.add('loading');
         }
+
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', CONFIG.apiEndpoint, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Accept', 'application/json');
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                hideTyping();
+                state.isLoading = false;
+                
+                if (elements.send) {
+                    elements.send.disabled = false;
+                    elements.send.classList.remove('loading');
+                }
+                
+                if (xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        if (data.success && data.response) {
+                            addBotMessage(data.response);
+                        } else {
+                            addBotMessage(data.error || "I'm sorry, I couldn't process that. Please try again.");
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse response:', e);
+                        addBotMessage("I'm having trouble understanding the response. Please try again.");
+                    }
+                } else {
+                    console.error('Chatbot API error:', xhr.status, xhr.statusText);
+                    addBotMessage("I'm having trouble connecting right now. Please try again in a moment.");
+                }
+            }
+        };
+        
+        xhr.onerror = function() {
+            hideTyping();
+            state.isLoading = false;
+            
+            if (elements.send) {
+                elements.send.disabled = false;
+                elements.send.classList.remove('loading');
+            }
+            
+            addBotMessage("I'm having trouble connecting right now. Please try again in a moment.");
+        };
+        
+        // Send last 10 messages for context
+        var historyToSend = state.messages.slice(-10);
+        xhr.send(JSON.stringify({
+            message: userMessage,
+            history: historyToSend
+        }));
     }
 
     // Render all messages
     function renderMessages() {
+        if (!elements.messages) return;
         elements.messages.innerHTML = '';
-        state.messages.forEach(message => renderMessage(message));
+        state.messages.forEach(function(message) {
+            renderMessage(message);
+        });
     }
 
     // Render single message
     function renderMessage(message) {
-        const div = document.createElement('div');
-        div.className = `chatbot-message ${message.type}`;
+        if (!elements.messages) return;
         
-        const time = formatTime(message.timestamp);
+        var div = document.createElement('div');
+        div.className = 'chatbot-message ' + message.type;
         
-        const avatarSVG = message.type === 'bot' 
-            ? '<svg xmlns="http://www. w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6. 48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14. 2c-2.5 0-4. 71-1.28-6-3. 22. 03-1.99 4-3.08 6-3. 08 1.99 0 5. 97 1.09 6 3. 08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>'
-            : '<svg xmlns="http://www.w3. org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1. 79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+        var time = formatTime(message.timestamp);
+        
+        var botAvatarSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>';
+        var userAvatarSVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+        
+        var avatarSVG = message.type === 'bot' ? botAvatarSVG : userAvatarSVG;
 
-        div.innerHTML = `
-            <div class="chatbot-message-avatar">
-                ${avatarSVG}
-            </div>
-            <div class="chatbot-message-content">
-                <div class="chatbot-message-bubble">${escapeHtml(message.text)}</div>
-                <div class="chatbot-message-time">${time}</div>
-            </div>
-        `;
+        div.innerHTML = '<div class="chatbot-message-avatar">' + avatarSVG + '</div>' +
+            '<div class="chatbot-message-content">' +
+            '<div class="chatbot-message-bubble">' + escapeHtml(message.text) + '</div>' +
+            '<div class="chatbot-message-time">' + time + '</div>' +
+            '</div>';
         
         elements.messages.appendChild(div);
     }
 
     // Show typing indicator
     function showTyping() {
-        elements.typing.style.display = 'block';
-        scrollToBottom();
+        if (elements.typing) {
+            elements.typing.style.display = 'block';
+            scrollToBottom();
+        }
     }
 
     // Hide typing indicator
     function hideTyping() {
-        elements.typing.style.display = 'none';
+        if (elements.typing) {
+            elements.typing.style.display = 'none';
+        }
     }
 
     // Scroll to bottom of messages
     function scrollToBottom() {
-        requestAnimationFrame(() => {
-            elements.messages.scrollTop = elements.messages. scrollHeight;
-        });
+        if (elements.messages) {
+            setTimeout(function() {
+                elements.messages.scrollTop = elements.messages.scrollHeight;
+            }, 10);
+        }
     }
 
     // Format timestamp
     function formatTime(timestamp) {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-        
-        if (diffDays === 0) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } else if (diffDays === 1) {
-            return 'Yesterday ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } else {
-            return date. toLocaleDateString([], { month: 'short', day: 'numeric' });
+        try {
+            var date = new Date(timestamp);
+            var now = new Date();
+            var diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            
+            var hours = date.getHours();
+            var minutes = date.getMinutes();
+            var ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            var timeStr = hours + ':' + (minutes < 10 ? '0' : '') + minutes + ' ' + ampm;
+            
+            if (diffDays === 0) {
+                return timeStr;
+            } else if (diffDays === 1) {
+                return 'Yesterday ' + timeStr;
+            } else {
+                var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return months[date.getMonth()] + ' ' + date.getDate();
+            }
+        } catch (e) {
+            return '';
         }
     }
 
     // Escape HTML to prevent XSS
     function escapeHtml(text) {
-        const div = document.createElement('div');
+        var div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
     // Clear chat history (utility function)
     window.clearChatHistory = function() {
-        state. messages = [];
+        state.messages = [];
         saveState();
         renderMessages();
         addBotMessage(CONFIG.welcomeMessage);
@@ -292,6 +415,14 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
-        init();
+        // DOM already loaded, but wait a bit for elements to be parsed
+        setTimeout(init, 50);
     }
+
+    // Also try to init when window loads (backup)
+    window.addEventListener('load', function() {
+        if (!state.initialized) {
+            init();
+        }
+    });
 })();

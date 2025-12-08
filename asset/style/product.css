@@ -182,12 +182,14 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    z-index: 5;
+    z-index: 50;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
 }
 
-.product-badge.new {
-    background: linear-gradient(135deg, var(--product-primary), #333);
+.product-badge.new,
+.product-badge.new-badge {
+    background: linear-gradient(135deg, #10b981, #059669);
     color: var(--product-white);
 }
 

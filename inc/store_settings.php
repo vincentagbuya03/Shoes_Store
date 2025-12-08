@@ -360,7 +360,9 @@ function getStoreThemeCSS() {
         --store-text: {$colors['text']};
         --store-text-secondary: {$colors['text-secondary']};
         --store-border: {$colors['border']};
-        --store-nav-bg: {$colors['nav-bg']};
+        --store-nav-bg: {$primary};
+        --store-nav-text: #ffffff;
+        --store-nav-text-secondary: rgba(255, 255, 255, 0.7);
         --store-card-bg: {$colors['card-bg']};
         --store-font: {$fontFamily};
         --store-gradient: linear-gradient(135deg, {$primary}, {$secondary});
@@ -384,19 +386,26 @@ function getStoreThemeCSS() {
     }
     
     /* Navigation */
-    nav, .navbar {
+    nav, .navbar, .nav-modern {
         background-color: var(--store-nav-bg) !important;
-        border-bottom: 1px solid var(--store-border);
+        border-bottom: 1px solid transparent;
     }
-    nav a, .navbar a, .nav-links a {
-        color: var(--store-text) !important;
+    nav a, .navbar a, .nav-links a, .nav-link-enhanced {
+        color: var(--store-nav-text) !important;
     }
-    nav a:hover, .navbar a:hover, .nav-links a:hover {
-        color: var(--store-primary) !important;
+    nav a:hover, .navbar a:hover, .nav-links a:hover, .nav-link-enhanced:hover {
+        color: rgba(255, 255, 255, 0.8) !important;
     }
-    .logo a {
-        color: var(--store-text) !important;
+    .logo a, .logo-modern {
+        color: var(--store-nav-text) !important;
         font-weight: 700;
+    }
+    .gradient-text-accent {
+        -webkit-text-fill-color: var(--store-nav-text) !important;
+    }
+    .nav-modern .cart-icon-modern,
+    .nav-modern .menu-toggle {
+        color: var(--store-nav-text) !important;
     }
     
     /* Buttons - Primary with Gradient */

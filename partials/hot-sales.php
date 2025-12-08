@@ -13,8 +13,8 @@ $hot_query = "
              LIMIT 1
             ) AS image_url,
             (SELECT MIN(v.price) FROM product_variant v WHERE v.product_id = s.product_id) AS min_price
-        FROM Product s
-        LEFT JOIN Brand b ON s.brand_id = b.brand_id
+        FROM product s
+        LEFT JOIN brand b ON s.brand_id = b.brand_id
     WHERE s.product_badge LIKE '%Hot%'
     ORDER BY s.created_at DESC
     LIMIT 4
@@ -29,7 +29,6 @@ if ($hot_res && $hot_res->num_rows > 0) {
 }
 
 if (empty($hot_products)) {
-    // nothing to show
     return;
 }
 

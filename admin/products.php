@@ -81,6 +81,13 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
                     <span>Brands</span>
                 </a>
 
+                <a href="riders.php" class="<?php echo nav_active(['riders.php'], $current); ?>">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    <span>Riders</span>
+                </a>
+
                 <a href="analytics.php" class="<?php echo nav_active(['analytics.php'], $current); ?>">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -247,13 +254,11 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 
             <div class="products-panel">
             <div class="dashboard-content">
-                <div class="page-title" style="display:flex;justify-content:space-between;align-items:center;">
-                    <div>
-                        <h1>Products</h1>
-                    </div>
+                <div class="page-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+                    <h1>Products</h1>
                     <div class="page-actions">
-                        <input id="searchInput" class="page-search" type="search" placeholder="Search products...">
-                        <button class="btn" id="addProductBtn">Add Product</button>
+                        <input id="searchInput" class="page-search" type="search" placeholder="Search...">
+                        <button class="btn" id="addProductBtn">+ Add Product</button>
                     </div>
                 </div>
 
@@ -263,14 +268,15 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
                             <tr>
                                 <th>Product</th>
                                 <th>Brand</th>
+                                <th>Color</th>
                                 <th>Price</th>
                                 <th>Stock</th>
                                 <th>Category</th>
-                                <th style="width:150px;text-align:center;">Actions</th>
+                                <th style="width:120px;text-align:center;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="productsTbody">
-                            <tr><td colspan="6" class="no-data">Loading products…</td></tr>
+                            <tr><td colspan="7" class="no-data">Loading products…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -282,53 +288,53 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
     <div class="modal-backdrop" id="productModalBackdrop" role="dialog" aria-modal="true">
         <div class="modal" role="document" id="productModal">
             <h3 id="productModalTitle">Add Product</h3>
-            <div id="productMeta" class="product-meta" aria-hidden="true" style="display:none">
-                <div id="metaId">ID: <span id="metaIdVal"></span></div>
-                <div id="metaCreated">Created: <span id="metaCreatedVal"></span></div>
-            </div>
             <form id="productForm">
+                <div id="productMeta" class="product-meta" aria-hidden="true" style="display:none">
+                    <div>ID: <span id="metaIdVal"></span></div>
+                    <div>Created: <span id="metaCreatedVal"></span></div>
+                </div>
                 <input type="hidden" name="product_id" id="product_id" value="">
+                
                 <div class="form-row">
-                    <input type="text" name="name" id="name" placeholder="Product name" required>
-                    <input type="text" name="brand_name" id="brand_name" placeholder="Brand name">
+                    <div>
+                        <label>Product Name *</label>
+                        <input type="text" name="name" id="name" placeholder="Product name" required>
+                    </div>
+                    <div>
+                        <label>Brand</label>
+                        <input type="text" name="brand_name" id="brand_name" placeholder="Brand name">
+                    </div>
                 </div>
+                
                 <div class="form-row">
-                    <input type="number" name="price" id="price" placeholder="Price" step="0.01" required>
-                    <input type="number" name="stock" id="stock" placeholder="Stock" required>
+                    <div>
+                        <label>Category</label>
+                        <input type="text" name="category" id="category" placeholder="Category">
+                    </div>
+                    <div></div>
                 </div>
-                <div class="form-row">
-                    <input type="text" name="category" id="category" placeholder="Category">
-                    <div style="display:flex;gap:.5rem;flex-direction:column;">
-                            <label style="font-size:.8rem;color:var(--text-secondary);">Product images (up to 5)</label>
-                            <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-start;">
-                                <div style="display:flex;flex-direction:column;gap:.5rem;align-items:center;">
-                                    <input type="file" name="image_1" id="image_1" accept="image/*">
-                                    <img id="preview_1" src="" alt="" style="width:68px;height:68px;border-radius:8px;display:none;object-fit:cover;border:1px solid rgba(255,255,255,0.03);">
-                                </div>
-                                <div style="display:flex;flex-direction:column;gap:.5rem;align-items:center;">
-                                    <input type="file" name="image_2" id="image_2" accept="image/*">
-                                    <img id="preview_2" src="" alt="" style="width:68px;height:68px;border-radius:8px;display:none;object-fit:cover;border:1px solid rgba(255,255,255,0.03);">
-                                </div>
-                                <div style="display:flex;flex-direction:column;gap:.5rem;align-items:center;">
-                                    <input type="file" name="image_3" id="image_3" accept="image/*">
-                                    <img id="preview_3" src="" alt="" style="width:68px;height:68px;border-radius:8px;display:none;object-fit:cover;border:1px solid rgba(255,255,255,0.03);">
-                                </div>
-                                <div style="display:flex;flex-direction:column;gap:.5rem;align-items:center;">
-                                    <input type="file" name="image_4" id="image_4" accept="image/*">
-                                    <img id="preview_4" src="" alt="" style="width:68px;height:68px;border-radius:8px;display:none;object-fit:cover;border:1px solid rgba(255,255,255,0.03);">
-                                </div>
-                                <div style="display:flex;flex-direction:column;gap:.5rem;align-items:center;">
-                                    <input type="file" name="image_5" id="image_5" accept="image/*">
-                                    <img id="preview_5" src="" alt="" style="width:68px;height:68px;border-radius:8px;display:none;object-fit:cover;border:1px solid rgba(255,255,255,0.03);">
-                                </div>
-                            </div>
-                        </div>
-                </div>
-                <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.5rem;">
-                    <button type="button" class="btn ghost" id="cancelProduct">Cancel</button>
-                    <button class="btn" id="saveProduct">Save</button>
+                
+                <!-- Color Variants Section -->
+                <div class="color-variants-section">
+                    <label style="display:block;font-size:0.85rem;font-weight:500;color:var(--text-primary);margin-bottom:0.75rem;">Color Variants</label>
+                    
+                    <div class="color-selector">
+                        <select id="colorSelect">
+                            <option value="">Select a color...</option>
+                        </select>
+                        <button type="button" class="btn" id="addColorBtn" style="white-space:nowrap;">+ Add Color</button>
+                    </div>
+                    
+                    <div id="colorVariantsContainer" class="color-variants-container">
+                        <!-- Color variant groups will be added here dynamically -->
+                        <div class="no-colors-message">Select a color and click "Add Color" to add variants</div>
+                    </div>
                 </div>
             </form>
+            <div class="modal-actions">
+                <button type="button" class="btn ghost" id="cancelProduct">Cancel</button>
+                <button class="btn" id="saveProduct">Save</button>
+            </div>
         </div>
     </div>
 
@@ -353,7 +359,7 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
     const searchInput = qs('#searchInput');
 
     async function fetchProducts(q = '') {
-        productsTbody.innerHTML = '<tr><td colspan="6" class="no-data">Loading products…</td></tr>';
+        productsTbody.innerHTML = '<tr><td colspan="7" class="no-data">Loading products…</td></tr>';
         try {
                 const res = await fetch('api/products_api.php?action=list' + (q ? '&q=' + encodeURIComponent(q) : ''));
                 const txt = await res.text();
@@ -370,7 +376,7 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
                 renderProducts();
         } catch (err) {
             const msg = err?.message || 'Error loading products';
-            productsTbody.innerHTML = `<tr><td colspan="6" class="no-data">${escapeHtml(msg)}<div style="margin-top:.6rem"><button id="retryProducts" class="btn">Retry</button></div></td></tr>`;
+            productsTbody.innerHTML = `<tr><td colspan="7" class="no-data">${escapeHtml(msg)}<div style="margin-top:.6rem"><button id="retryProducts" class="btn">Retry</button></div></td></tr>`;
             console.error(err);
             document.getElementById('retryProducts')?.addEventListener('click', () => fetchProducts(q));
         }
@@ -378,32 +384,72 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
 
     function renderProducts() {
         if (!products.length) {
-            productsTbody.innerHTML = '<tr><td colspan="6" class="no-data">No products found</td></tr>';
+            productsTbody.innerHTML = '<tr><td colspan="7" class="no-data">No products found</td></tr>';
             return;
         }
         productsTbody.innerHTML = '';
         products.forEach(p => {
             const tr = document.createElement('tr');
+            // Fix image URL - ensure it has a valid path
+            let imgUrl = p.image_url || '';
+            if (!imgUrl || imgUrl === 'null' || imgUrl === 'undefined') {
+                imgUrl = '../upload/product-image/placeholder.png';
+            } else {
+                // Convert backslashes to forward slashes
+                imgUrl = imgUrl.replace(/\\/g, '/');
+                // Add ../ prefix if path starts with upload/ (relative to root)
+                if (imgUrl.startsWith('upload/')) {
+                    imgUrl = '../' + imgUrl;
+                }
+            }
+            
+            // Build color variants HTML (showing color, price, image)
+            let colorVariantsHtml = '—';
+            if (p.color_variants && p.color_variants.length > 0) {
+                colorVariantsHtml = '<div class="color-variants-list">';
+                p.color_variants.forEach(cv => {
+                    let cvImgUrl = cv.image_url || '';
+                    if (cvImgUrl) {
+                        cvImgUrl = cvImgUrl.replace(/\\/g, '/');
+                        if (cvImgUrl.startsWith('upload/')) {
+                            cvImgUrl = '../' + cvImgUrl;
+                        }
+                    }
+                    const priceStr = cv.price ? '₱' + Number(cv.price).toLocaleString() : '';
+                    colorVariantsHtml += `
+                        <div class="color-variant-item" title="${escapeHtml(cv.color_name)} - ${priceStr}">
+                            ${cvImgUrl ? `<img src="${escapeHtml(cvImgUrl)}" alt="${escapeHtml(cv.color_name)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+                            <div class="color-variant-info" ${cvImgUrl ? 'style="display:none"' : ''}>
+                                <span class="cv-name">${escapeHtml(cv.color_name)}</span>
+                            </div>
+                            <div class="color-variant-price">${priceStr}</div>
+                        </div>
+                    `;
+                });
+                colorVariantsHtml += '</div>';
+            }
+            
             tr.innerHTML = `
-                <td style="display:flex;align-items:center;gap:.75rem;">
-                    <img src="${escapeHtml(p.image_url || 'upload/picture/no-image.png')}" alt="${escapeHtml(p.name)}" class="product-thumb">
-                    <div>
-                        <div style="font-weight:600">${escapeHtml(p.name)}</div>
-                        <div style="color:var(--text-secondary);font-size:.85rem;">#${p.product_id}</div>
+                <td>
+                    <div style="display:flex;align-items:center;gap:.75rem;">
+                        <img src="${escapeHtml(imgUrl)}" alt="${escapeHtml(p.name)}" class="product-thumb" onerror="this.src='https://via.placeholder.com/44x44?text=No+Image'">
+                        <div>
+                            <div style="font-weight:500">${escapeHtml(p.name)}</div>
+                            <div style="color:var(--text-muted);font-size:.75rem;">#${p.product_id}</div>
+                        </div>
                     </div>
                 </td>
-                <td>${escapeHtml(p.brand_name || 'No Brand')}</td>
+                <td>${escapeHtml(p.brand_name || '—')}</td>
+                <td>${colorVariantsHtml}</td>
                 <td>₱${Number(p.price).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
                 <td>${escapeHtml(p.stock)}</td>
                 <td>${escapeHtml(p.category || '—')}</td>
-                <td style="text-align:center;" class="actions">
-                    <button class="btn ghost" data-action="edit" data-id="${p.product_id}" aria-label="Edit product">
-                        <!-- Pencil / edit icon -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+                <td class="actions">
+                    <button class="btn ghost" data-action="edit" data-id="${p.product_id}" title="Edit">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
                     </button>
-                    <button class="btn" data-action="delete" data-id="${p.product_id}" style="background:#ef4444" aria-label="Delete product">
-                        <!-- Trash / delete icon -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"/></svg>
+                    <button class="btn" data-action="delete" data-id="${p.product_id}" style="background:#ef4444" title="Delete">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                 </td>
             `;
@@ -436,13 +482,8 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
         productForm.product_id.value = data ? data.product_id : '';
         productForm.name.value = data ? data.name : '';
         productForm.brand_name.value = data ? data.brand_name : '';
-        productForm.price.value = data ? data.price : '';
-        productForm.stock.value = data ? data.stock : '';
         productForm.category.value = data ? data.category : '';
-        // clear previews
-        for (var i=1;i<=5;i++){
-            try { const pv = document.getElementById('preview_'+i); pv.style.display='none'; pv.src=''; document.getElementById('image_'+i).value = ''; } catch(e){}
-        }
+        
         // product meta
         const metaEl = document.getElementById('productMeta');
         if (data && data.product_id) {
@@ -453,55 +494,276 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
         } else {
             metaEl.style.display = 'none'; metaEl.setAttribute('aria-hidden','true');
         }
-        // If editing and there are images from the API, populate previews
-        if (data && Array.isArray(data.images) && data.images.length) {
-            data.images.forEach((img, idx) => {
-                const i = idx + 1;
-                try {
-                    const pv = document.getElementById('preview_'+i);
-                    pv.src = img.image_url;
-                    pv.style.display = 'block';
-                } catch (e){}
-            });
-        } else if (data && data.image_url) {
-            try { document.getElementById('preview_1').src = data.image_url; document.getElementById('preview_1').style.display='block'; } catch(e){}
-        }
+        
+        // Load colors and color variants
+        loadColorsDropdown();
+        loadColorVariants(data ? data.product_id : null);
+        
         productModalBackdrop.style.display = 'flex';
     }
 
-    // wire file inputs to show live previews and allow clicking preview to pick file
-    function bindImageInputs() {
-        for (let i=1;i<=5;i++) {
-            const input = document.getElementById('image_'+i);
-            const preview = document.getElementById('preview_'+i);
-            if (!input || !preview) continue;
-            // when file selected, show preview
-            input.addEventListener('change', (e) => {
-                const f = input.files && input.files[0];
-                if (!f) return;
+    // Load colors for dropdown
+    let availableColors = [];
+    async function loadColorsDropdown() {
+        const colorSelect = document.getElementById('colorSelect');
+        try {
+            const res = await fetch('api/products_api.php?action=colors');
+            const data = await res.json();
+            if (data.success) {
+                availableColors = data.colors;
+                colorSelect.innerHTML = '<option value="">Select a color...</option>';
+                data.colors.forEach(c => {
+                    colorSelect.innerHTML += `<option value="${c.color_id}">${escapeHtml(c.color_name)}</option>`;
+                });
+            }
+        } catch (e) {
+            console.error('Failed to load colors', e);
+        }
+    }
+    
+    // Load color variants for a product
+    async function loadColorVariants(productId) {
+        const container = document.getElementById('colorVariantsContainer');
+        
+        if (!productId) {
+            container.innerHTML = '<div class="no-colors-message">Select a color and click "Add Color" to add variants</div>';
+            return;
+        }
+        
+        try {
+            const res = await fetch('api/products_api.php?action=get_color_variants&product_id=' + productId);
+            const data = await res.json();
+            if (data.success && data.color_variants.length > 0) {
+                container.innerHTML = '';
+                data.color_variants.forEach(cv => {
+                    addColorVariantGroup(cv.color_id, cv.color_name, cv.price, cv.stock, cv.images);
+                });
+            } else {
+                container.innerHTML = '<div class="no-colors-message">Select a color and click "Add Color" to add variants</div>';
+            }
+        } catch (e) {
+            console.error('Failed to load color variants', e);
+            container.innerHTML = '<div class="no-colors-message">Failed to load variants</div>';
+        }
+    }
+    
+    // Add a color variant group to the container
+    function addColorVariantGroup(colorId, colorName, price = '', stock = '', images = []) {
+        const container = document.getElementById('colorVariantsContainer');
+        // Remove no-colors message if exists
+        const noMsg = container.querySelector('.no-colors-message');
+        if (noMsg) noMsg.remove();
+        
+        // Check if group already exists
+        if (container.querySelector(`.color-variant-group[data-color-id="${colorId}"]`)) {
+            alert('This color is already added');
+            return;
+        }
+        
+        const group = document.createElement('div');
+        group.className = 'color-variant-group';
+        group.dataset.colorId = colorId;
+        
+        let imagesHtml = '';
+        if (images && images.length > 0) {
+            images.forEach(img => {
+                let imgUrl = img.image_url || '';
+                if (imgUrl.startsWith('upload/')) imgUrl = '../' + imgUrl;
+                imagesHtml += `
+                    <div class="color-image-thumb" data-image-id="${img.color_image_id}">
+                        <img src="${escapeHtml(imgUrl)}" alt="" onerror="this.src='https://via.placeholder.com/60x60?text=Error'">
+                        <button type="button" class="remove-image-btn" onclick="removeColorImage(${img.color_image_id}, this)">&times;</button>
+                    </div>
+                `;
+            });
+        }
+        
+        group.innerHTML = `
+            <div class="color-variant-header">
+                <span class="color-variant-name">${escapeHtml(colorName)}</span>
+                <button type="button" class="btn ghost remove-color-btn" onclick="removeColorVariant(${colorId}, this)" title="Remove color">&times;</button>
+            </div>
+            <div class="color-variant-fields">
+                <div class="field-group">
+                    <label>Price</label>
+                    <input type="number" class="variant-price" data-color-id="${colorId}" value="${price || ''}" placeholder="0.00" step="0.01">
+                </div>
+                <div class="field-group">
+                    <label>Stock</label>
+                    <input type="number" class="variant-stock" data-color-id="${colorId}" value="${stock || ''}" placeholder="0">
+                </div>
+            </div>
+            <div class="color-variant-images" data-color-id="${colorId}">
+                ${imagesHtml}
+                <div class="add-image-btn" onclick="triggerImageUpload(${colorId})">
+                    <input type="file" class="color-image-input" data-color-id="${colorId}" accept="image/*" multiple style="display:none" onchange="handleColorImageUpload(this, ${colorId})">
+                    <span>+</span>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(group);
+    }
+    
+    // Add color button click
+    document.getElementById('addColorBtn').addEventListener('click', () => {
+        const colorSelect = document.getElementById('colorSelect');
+        const colorId = colorSelect.value;
+        if (!colorId) {
+            alert('Please select a color first');
+            return;
+        }
+        const colorName = colorSelect.options[colorSelect.selectedIndex].text;
+        addColorVariantGroup(colorId, colorName, '', '', []);
+        colorSelect.value = '';
+    });
+    
+    // Trigger file input click
+    function triggerImageUpload(colorId) {
+        const input = document.querySelector(`.color-image-input[data-color-id="${colorId}"]`);
+        if (input) input.click();
+    }
+    
+    // Handle image upload for a color
+    async function handleColorImageUpload(input, colorId) {
+        const productId = document.getElementById('product_id').value;
+        const files = input.files;
+        
+        if (!files || files.length === 0) return;
+        
+        // If product not saved yet, show preview only
+        if (!productId) {
+            const container = document.querySelector(`.color-variant-images[data-color-id="${colorId}"]`);
+            const addBtn = container.querySelector('.add-image-btn');
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
                 const reader = new FileReader();
-                reader.onload = function(ev) {
-                    preview.src = ev.target.result;
-                    preview.style.display = 'block';
+                reader.onload = function(e) {
+                    const thumb = document.createElement('div');
+                    thumb.className = 'color-image-thumb pending';
+                    thumb.innerHTML = `
+                        <img src="${e.target.result}" alt="">
+                        <button type="button" class="remove-image-btn" onclick="this.parentElement.remove()">&times;</button>
+                    `;
+                    // Store file reference for later upload
+                    thumb.dataset.pendingFile = 'true';
+                    thumb._file = file;
+                    thumb.dataset.colorId = colorId;
+                    container.insertBefore(thumb, addBtn);
                 };
-                reader.readAsDataURL(f);
+                reader.readAsDataURL(file);
+            }
+            input.value = '';
+            return;
+        }
+        
+        // Upload immediately if product exists
+        for (let i = 0; i < files.length; i++) {
+            await uploadColorImage(productId, colorId, files[i]);
+        }
+        input.value = '';
+        
+        // Reload color variants
+        await loadColorVariants(productId);
+    }
+    
+    // Upload a single color image
+    async function uploadColorImage(productId, colorId, file) {
+        const formData = new FormData();
+        formData.append('product_id', productId);
+        formData.append('color_id', colorId);
+        formData.append('image', file);
+        // sort_order is auto-calculated by the API
+        
+        try {
+            const res = await fetch('api/products_api.php?action=upload_color_image', {
+                method: 'POST',
+                body: formData
             });
-            // clicking preview opens file input
-            preview.addEventListener('click', () => {
-                input.click();
+            const data = await res.json();
+            if (!data.success) {
+                alert('Failed to upload image: ' + (data.message || 'Unknown error'));
+            }
+        } catch (e) {
+            console.error('Upload failed', e);
+            alert('Failed to upload image');
+        }
+    }
+    
+    // Remove a color image
+    async function removeColorImage(imageId, btn) {
+        if (!confirm('Remove this image?')) return;
+        
+        try {
+            const res = await fetch('api/products_api.php?action=delete_color_image', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'color_image_id=' + imageId
             });
-            // make preview focusable
-            preview.style.cursor = 'pointer';
-            preview.setAttribute('tabindex','0');
-            preview.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') input.click(); });
+            const data = await res.json();
+            if (data.success) {
+                btn.closest('.color-image-thumb').remove();
+            } else {
+                alert('Failed to remove image');
+            }
+        } catch (e) {
+            console.error('Delete failed', e);
+            alert('Failed to remove image');
+        }
+    }
+    
+    // Remove entire color variant
+    async function removeColorVariant(colorId, btn) {
+        if (!confirm('Remove this color variant and all its images?')) return;
+        
+        const productId = document.getElementById('product_id').value;
+        const group = btn.closest('.color-variant-group');
+        
+        if (productId) {
+            // Delete from server
+            try {
+                const res = await fetch('api/products_api.php?action=delete_color_variant', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `product_id=${productId}&color_id=${colorId}`
+                });
+                const data = await res.json();
+                if (!data.success) {
+                    alert('Failed to remove color variant');
+                    return;
+                }
+            } catch (e) {
+                console.error('Delete failed', e);
+                alert('Failed to remove color variant');
+                return;
+            }
+        }
+        
+        // Remove from DOM
+        if (group) group.remove();
+        
+        // If no more groups, show message
+        const container = document.getElementById('colorVariantsContainer');
+        if (!container.querySelector('.color-variant-group')) {
+            container.innerHTML = '<div class="no-colors-message">Select a color and click "Add Color" to add variants</div>';
         }
     }
 
-    // bind once
-    bindImageInputs();
-
     qs('#cancelProduct').addEventListener('click', () => {
         productModalBackdrop.style.display = 'none';
+    });
+
+    // Close modal when clicking on backdrop
+    productModalBackdrop.addEventListener('click', (e) => {
+        if (e.target === productModalBackdrop) {
+            productModalBackdrop.style.display = 'none';
+        }
+    });
+
+    // Save button is now outside the form, so we need to trigger form submit
+    qs('#saveProduct').addEventListener('click', () => {
+        productForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
     });
 
     productForm.addEventListener('submit', async (e) => {
@@ -509,6 +771,20 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
         const form = new FormData(productForm);
         const id = form.get('product_id');
         const action = id ? 'update' : 'create';
+        
+        // Get color variants from the form
+        const colorVariants = [];
+        document.querySelectorAll('.color-variant-group').forEach(group => {
+            const colorId = group.dataset.colorId;
+            const priceInput = group.querySelector('.variant-price');
+            const stockInput = group.querySelector('.variant-stock');
+            colorVariants.push({
+                color_id: colorId,
+                price: priceInput ? priceInput.value : 0,
+                stock: stockInput ? stockInput.value : 0
+            });
+        });
+        
         try {
             const res = await fetch('api/products_api.php?action=' + action, {
                 method: 'POST',
@@ -519,6 +795,25 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
             if (!txt) throw new Error('Empty response from server');
             try { data = JSON.parse(txt); } catch (e) { throw new Error('Invalid JSON response from server:\n' + (txt.length > 1000 ? txt.slice(0,1000) + '\n…' : txt)); }
             if (!data.success) throw new Error(data.message || 'Error saving');
+            
+            // Get the product ID
+            const newProductId = data.id || id;
+            
+            if (newProductId) {
+                // Save color variants (price/stock)
+                for (const cv of colorVariants) {
+                    await saveColorVariant(newProductId, cv.color_id, cv.price, cv.stock);
+                }
+                
+                // Upload pending images
+                const pendingThumbs = document.querySelectorAll('.color-image-thumb.pending');
+                for (const thumb of pendingThumbs) {
+                    if (thumb._file && thumb.dataset.colorId) {
+                        await uploadColorImage(newProductId, thumb.dataset.colorId, thumb._file);
+                    }
+                }
+            }
+            
             productModalBackdrop.style.display = 'none';
             await fetchProducts(searchInput.value.trim());
         } catch (err) {
@@ -526,6 +821,31 @@ $admin_name = $_SESSION['admin_name'] ?? 'Admin';
             console.error(err);
         }
     });
+    
+    // Save color variant (price/stock) and register color in product_color_image
+    async function saveColorVariant(productId, colorId, price, stock) {
+        try {
+            // First, register the color in product_color_image table
+            await fetch('api/products_api.php?action=register_color', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `product_id=${productId}&color_id=${colorId}`
+            });
+            
+            // Then save the variant (price/stock)
+            const res = await fetch('api/products_api.php?action=save_color_variant', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `product_id=${productId}&color_id=${colorId}&price=${price || 0}&stock=${stock || 0}`
+            });
+            const data = await res.json();
+            if (!data.success) {
+                console.error('Failed to save variant:', data.message);
+            }
+        } catch (e) {
+            console.error('Failed to save variant', e);
+        }
+    }
 
     async function editProduct(id) {
         const p = products.find(x => x.product_id == id);

@@ -4,18 +4,7 @@ header('Content-Type: application/json');
 session_start();
 
 // Database connection
-$servername = "localhost";
-$username   = "root";
-$password   = "vincentagbuya123";
-$database   = "shoestore";
-
-$conn = new mysqli($servername, $username, $password, $database);
-if ($conn->connect_error) {
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Database connection failed']);
-    exit;
-}
-$conn->set_charset("utf8mb4");
+require_once __DIR__ . '/../db_connection.php';
 
 // Get JSON input
 $input = json_decode(file_get_contents('php://input'), true);
@@ -31,13 +20,13 @@ $product_name = $input['product_name'] ?? 'Product';
 $brand_name = $input['brand_name'] ?? '';
 $category = $input['category'] ?? '';
 
-// Load Gemini helper
+// Load Gemini helper - prefer root file with full implementation
 $helper_included = false;
-if (file_exists(__DIR__ . '/../inc/gemini_description.php')) {
-    include_once __DIR__ . '/../inc/gemini_description.php';
-    $helper_included = true;
-} elseif (file_exists(__DIR__ . '/../gemini_description.php')) {
+if (file_exists(__DIR__ . '/../gemini_description.php')) {
     include_once __DIR__ . '/../gemini_description.php';
+    $helper_included = true;
+} elseif (file_exists(__DIR__ . '/../inc/gemini_description.php')) {
+    include_once __DIR__ . '/../inc/gemini_description.php';
     $helper_included = true;
 }
 

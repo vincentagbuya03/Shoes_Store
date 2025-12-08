@@ -41,8 +41,8 @@ $sale_query = "
         (
             SELECT MAX(v.price) FROM product_variant v WHERE v.product_id = s.product_id AND v.color_id = pci.color_id
         ) AS max_price
-    FROM Product s
-    LEFT JOIN Brand b ON s.brand_id = b.brand_id
+    FROM product s
+    LEFT JOIN brand b ON s.brand_id = b.brand_id
     LEFT JOIN product_color_image pci ON s.product_id = pci.product_id AND pci.sort_order = 1
     LEFT JOIN color c ON pci.color_id = c.color_id
     ORDER BY RAND()
@@ -57,8 +57,9 @@ $sale_result = $conn->query($sale_query);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>12.12 MEGA SALE - <?php echo htmlspecialchars($store_settings['store_name']); ?></title>
     <link rel="icon" type="image/x-icon" href="upload/picture/logo.png">
-    <link rel="stylesheet" href="asset/style/index.css">
+    <link rel="stylesheet" href="asset/style/beautiful-ui.css">
     <link rel="stylesheet" href="asset/style/12-12-sale.css">
+    <link rel="stylesheet" href="asset/style/animations.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
     <script src="asset/script/script.js"></script>
     <?php echo getStoreThemeCSS(); ?>
@@ -78,39 +79,95 @@ $sale_result = $conn->query($sale_query);
 
     <div class="toast-container" id="toast-container"></div>
     
-    <nav>
+    <nav class="nav-modern">
         <div class="logo">
-            <a href="user-interface.php"><?php echo htmlspecialchars($store_settings['store_name']); ?></a>
+            <a href="user-interface.php" class="logo-modern">
+                <span class="gradient-text-accent"><?php echo htmlspecialchars($store_settings['store_name']); ?></span>
+                <span class="logo-sparkle">🔥</span>
+            </a>
         </div>
-        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation" tabindex="0">☰</button>
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation" tabindex="0">
+            <i class="fas fa-bars"></i>
+        </button>
         <ul class="nav-links" id="nav-links">
-            <li><a href="12_12.php" class="active-sale-link">12.12 Sale</a></li>
-            <li><a href="user-interface.php">Home</a></li>
-            <li><a href="best-seller.php">Best Seller</a></li>
-            <li><a href="shoes.php">Shoes</a></li>
+            <li><a href="12_12.php" class="nav-link-enhanced sale-link"><i class="fas fa-fire nav-icon"></i> 12.12 Sale</a></li>
+            <li><a href="user-interface.php" class="nav-link-enhanced"><i class="fas fa-home nav-icon"></i> Home</a></li>
+            <li><a href="best-seller.php" class="nav-link-enhanced"><i class="fas fa-star nav-icon"></i> Best Seller</a></li>
+            <li><a href="shoes.php" class="nav-link-enhanced"><i class="fas fa-shoe-prints nav-icon"></i> Shoes</a></li>
             <li class="brand-dropdown">
                 <a href="brand.php" class="brand-link">Brand</a>
+                <div class="brand-mega-menu">
+                    <div class="brand-grid">
+                        <?php
+                            $brand_query = "SELECT brand_id, brand_name, brand_logo 
+                                            FROM brand 
+                                            ORDER BY brand_name ASC";
+                            $brand_result_nav = $conn->query($brand_query);
+
+                            if ($brand_result_nav && $brand_result_nav->num_rows > 0) {
+                                while ($brand = $brand_result_nav->fetch_assoc()) {
+                                    $brand_name = htmlspecialchars($brand['brand_name'], ENT_QUOTES, 'UTF-8');
+                                    $brand_logo = htmlspecialchars($brand['brand_logo'], ENT_QUOTES, 'UTF-8');
+                                    $brand_id   = (int)$brand['brand_id'];
+
+                                    if (empty($brand_logo)) {
+                                        $brand_logo = "upload/brand/default_logo.png";
+                                    }
+
+                                    echo "
+                                    <a href='brand.php?id={$brand_id}' class='brand-item'>
+                                        <div class='brand-logo-box'>
+                                            <img src='{$brand_logo}' alt='{$brand_name} logo'>
+                                        </div>
+                                        <h4 class='brand-item-name'>{$brand_name}</h4>
+                                    </a>
+                                    ";
+                                }
+                            }
+                        ?>
+                    </div>
+                </div>
             </li>
         </ul>
         <div class="nav-right">
-            <form class="nav-search" action="shoes.php" method="get" role="search" aria-label="Site search">
-                <input type="search" name="q" placeholder="Search shoes, brands" aria-label="Search" />
+            <form class="nav-search search-modern" action="shoes.php" method="get" role="search" aria-label="Site search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="search" name="q" placeholder="Search shoes, brands, categories..." aria-label="Search" />
             </form>
-            <a href="cart.php" class="cart-icon" id="cart-icon">
-                <span>🛒</span>
+            <a href="cart.php" class="cart-icon cart-icon-modern" id="cart-icon" title="Shopping Cart">
+                <i class="fas fa-shopping-bag"></i>
                 <?php if ($cart_count > 0): ?>
-                    <span class="cart-badge" id="cart-badge"><?php echo $cart_count; ?></span>
+                    <span class="cart-badge cart-badge-modern" id="cart-badge"><?php echo $cart_count; ?></span>
+                <?php else: ?>
+                    <span class="cart-badge cart-badge-modern" id="cart-badge" style="display: none;">0</span>
                 <?php endif; ?>
+                <span class="cart-pulse"></span>
             </a>
             <div class="user-menu" id="user-menu">
                 <div class="user-menu-toggle">
-                    <i class="fa-solid fa-user"></i>
-                    <span class="user-name"><?php echo htmlspecialchars($customer_name); ?></span>
+                    <div class="user-avatar">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-greeting">Hello,</span>
+                        <span class="user-name"><?php echo htmlspecialchars($customer_name); ?></span>
+                    </div>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
                 </div>
                 <div class="user-dropdown">
-                    <a href="user-profile.php">My Profile</a>
-                    <a href="orders.php">My Orders</a>
-                    <a href="logout.php">Logout</a>
+                    <div class="dropdown-header">
+                        <div class="dropdown-avatar"><i class="fas fa-user-circle"></i></div>
+                        <div class="dropdown-user-info">
+                            <span class="dropdown-name"><?php echo htmlspecialchars($customer_name); ?></span>
+                            <span class="dropdown-email">Manage your account</span>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="user-profile.php" class="dropdown-item"><i class="fas fa-user-cog"></i> My Profile</a>
+                    <a href="orders.php" class="dropdown-item"><i class="fas fa-box"></i> My Orders</a>
+                    <a href="#" class="dropdown-item"><i class="fas fa-heart"></i> Wishlist</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="logout.php" class="dropdown-item logout-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
             </div>
         </div>
@@ -560,7 +617,14 @@ $sale_result = $conn->query($sale_query);
         const navLinks = document.getElementById('nav-links');
         if (menuToggle && navLinks) {
             menuToggle.addEventListener('click', () => {
-                navLinks.classList.toggle('show');
+                navLinks.classList.toggle('active');
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!navLinks.contains(e.target) && !menuToggle.contains(e.target)) {
+                    navLinks.classList.remove('active');
+                }
             });
         }
 

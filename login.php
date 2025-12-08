@@ -98,7 +98,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign In - <?php echo htmlspecialchars($store_settings['store_name']); ?></title>
     <link rel="icon" type="image/x-icon" href="upload/picture/logo.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="asset/style/animations.css">
     <?php echo getStoreThemeCSS(); ?>
     <style>
         * {

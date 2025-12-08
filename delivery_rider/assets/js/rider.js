@@ -70,8 +70,9 @@
     const ctx = document.getElementById('deliveriesChart');
     if (!ctx || typeof Chart === 'undefined') return;
 
-    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const deliveriesData = [12, 19, 8, 15, 22, 18, 25];
+    // Use dynamic data from PHP if available, otherwise use defaults
+    const labels = (window.chartData && window.chartData.labels) ? window.chartData.labels : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const deliveriesData = (window.chartData && window.chartData.values) ? window.chartData.values : [0, 0, 0, 0, 0, 0, 0];
 
     const chartConfig = {
       type: 'line',
@@ -492,11 +493,19 @@
           closeProofModal();
           updateVisibleCount();
         } else {
-          showToast((data && data.message) ? data.message : 'Upload failed');
+          // Auto-show debug panel on failure
+          if (data && data.debug && proofDebug && proofDebugPre) {
+            proofDebugPre.textContent = JSON.stringify(data.debug, null, 2);
+            proofDebug.style.display = '';
+            const toggle = document.getElementById('proofDebugToggle'); if (toggle) toggle.textContent = 'Hide debug';
+          }
+          const errorMsg = (data && data.message) ? data.message : 'Upload failed';
+          showToast(errorMsg);
+          console.error('Upload proof failed:', errorMsg, data);
         }
       } catch (err) {
         console.error('upload_proof error', err);
-        showToast('Network error');
+        showToast('Network error: ' + (err.message || 'Unknown error'));
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = origText;

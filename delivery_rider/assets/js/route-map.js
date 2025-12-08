@@ -123,13 +123,27 @@
         marker.bindPopup(popupHtml);
         markers[String(d.order_id)] = marker;
       });
-      // If we have a storeStart and deliveries with coords, attempt to draw a road-following route
+      // If we have rider location and deliveries with coords, attempt to draw a road-following route from rider to deliveries
       (async function drawRoadRouteIfPossible(){
         try {
-          if (!storeStart || !storeStart.lat || !storeStart.lng) return;
+          // Use rider location as starting point (prefer over store)
+          const riderLoc = (typeof window.riderLocation !== 'undefined') ? window.riderLocation : null;
+          let startLat = null, startLng = null;
+          
+          if (riderLoc && riderLoc.lat && riderLoc.lng) {
+            startLat = parseFloat(riderLoc.lat);
+            startLng = parseFloat(riderLoc.lng);
+          } else if (storeStart && storeStart.lat && storeStart.lng) {
+            // Fallback to store if no rider location
+            startLat = parseFloat(storeStart.lat);
+            startLng = parseFloat(storeStart.lng);
+          }
+          
+          if (startLat === null || startLng === null || isNaN(startLat) || isNaN(startLng)) return;
+          
           // collect coords for those deliveries that have valid numeric coords
           const seq = [];
-          seq.push([parseFloat(storeStart.lat), parseFloat(storeStart.lng)]);
+          seq.push([startLat, startLng]);
           deliveries.forEach(function(d){
             if (d.delivery_lat && d.delivery_lng) {
               const la = parseFloat(d.delivery_lat); const ln = parseFloat(d.delivery_lng);
@@ -147,7 +161,10 @@
       })();
     }
 
-    // Wire up list clicks to fly to markers and draw store->customer route
+    // Rider marker variable (declared here so it's accessible in click handlers)
+    let riderMarker = null;
+
+    // Wire up list clicks to fly to markers and draw rider->customer route
     const list = document.getElementById('routeDeliveriesList');
     let selectedRouteLayer = null;
     if (list) {
@@ -161,27 +178,44 @@
           map.flyTo(m.getLatLng(), 16, { duration: 0.8 });
           m.openPopup();
 
-          // Draw route from store to this customer
-          if (storeStart && storeStart.lat && storeStart.lng) {
+          // Draw route from rider location to this customer
+          // Get current rider location (use marker if exists, otherwise fallback to initial riderLocation)
+          let startLat = null, startLng = null;
+          
+          if (riderMarker) {
+            const riderPos = riderMarker.getLatLng();
+            startLat = riderPos.lat;
+            startLng = riderPos.lng;
+          } else {
+            const riderLoc = (typeof window.riderLocation !== 'undefined') ? window.riderLocation : null;
+            if (riderLoc && riderLoc.lat && riderLoc.lng) {
+              startLat = parseFloat(riderLoc.lat);
+              startLng = parseFloat(riderLoc.lng);
+            } else if (storeStart && storeStart.lat && storeStart.lng) {
+              // Fallback to store if no rider location available
+              startLat = parseFloat(storeStart.lat);
+              startLng = parseFloat(storeStart.lng);
+            }
+          }
+          
+          if (startLat !== null && startLng !== null && !isNaN(startLat) && !isNaN(startLng)) {
             // remove previous selected route
             if (selectedRouteLayer) {
               try { map.removeLayer(selectedRouteLayer); } catch (err) {}
               selectedRouteLayer = null;
             }
-            const sLat = parseFloat(storeStart.lat);
-            const sLng = parseFloat(storeStart.lng);
             const dest = m.getLatLng();
-            if (!isNaN(sLat) && !isNaN(sLng) && dest) {
+            if (dest) {
               (async function(){
-                // try OSRM driving route for store->dest
-                const pts = await fetchRouteViaOSRM([[sLat, sLng], [dest.lat, dest.lng]]);
+                // try OSRM driving route for rider->dest
+                const pts = await fetchRouteViaOSRM([[startLat, startLng], [dest.lat, dest.lng]]);
                 if (pts && pts.length > 1) {
                   selectedRouteLayer = L.polyline(pts, { color: '#f97316', weight: 5, opacity: 0.95 }).addTo(map);
                   map.fitBounds(selectedRouteLayer.getBounds().pad(0.25));
                 } else {
                   // fallback to straight line
-                  selectedRouteLayer = L.polyline([[sLat, sLng], [dest.lat, dest.lng]], { color: '#f97316', weight: 5, opacity: 0.95 }).addTo(map);
-                  const bounds = L.latLngBounds([[sLat, sLng], [dest.lat, dest.lng]]);
+                  selectedRouteLayer = L.polyline([[startLat, startLng], [dest.lat, dest.lng]], { color: '#f97316', weight: 5, opacity: 0.95 }).addTo(map);
+                  const bounds = L.latLngBounds([[startLat, startLng], [dest.lat, dest.lng]]);
                   map.fitBounds(bounds.pad(0.25));
                 }
               })();
@@ -196,7 +230,6 @@
 
     // Show rider location if available and start polling for updates every 15s
     const riderLoc = (typeof window.riderLocation !== 'undefined') ? window.riderLocation : null;
-    let riderMarker = null;
     function createOrUpdateRiderMarker(lat, lng) {
       if (lat === null || lng === null || typeof lat === 'undefined' || typeof lng === 'undefined') return;
       const latNum = parseFloat(lat);

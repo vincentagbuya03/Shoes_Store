@@ -106,6 +106,22 @@ if ($order_stmt) {
         $row['total_amount'] = number_format((float)$row['total_amount'], 2);
         $row['created_at'] = $row['created_at'];
         $row['status'] = $row['status'];
+        
+        // Check for existing refund request
+        $row['refund_status'] = null;
+        try {
+            $refund_check = $conn->prepare("SELECT status FROM refund_requests WHERE order_id = ? ORDER BY id DESC LIMIT 1");
+            if ($refund_check) {
+                $refund_check->bind_param('i', $row['order_id']);
+                $refund_check->execute();
+                $refund_result = $refund_check->get_result();
+                if ($refund_row = $refund_result->fetch_assoc()) {
+                    $row['refund_status'] = $refund_row['status'];
+                }
+                $refund_check->close();
+            }
+        } catch (Exception $e) { /* ignore */ }
+        
         $orders[] = $row;
     }
     $order_stmt->close();
@@ -152,8 +168,8 @@ function get_order_items($conn, $order_id) {
         if ($has('quantity')) { $select[] = 'oi.quantity AS quantity'; }
         else { $select[] = '1 AS quantity'; }
 
-        // unit_price
-        if ($has('unit_price')) { $select[] = 'oi.unit_price AS unit_price'; }
+        // price (stored as total: unit_price * quantity)
+        if ($has('price')) { $select[] = 'oi.price AS unit_price'; }
         else { $select[] = '0.00 AS unit_price'; }
 
         // image_url via product_color_image when product_id and color_id exist
@@ -213,6 +229,22 @@ foreach ($orders as &$order) {
     $order['items'] = get_order_items($conn, $order['order_id']);
 }
 unset($order);
+
+// Count orders by status for stats
+$stats = [
+    'total' => count($orders),
+    'pending' => 0,
+    'delivering' => 0,
+    'completed' => 0,
+    'cancelled' => 0
+];
+foreach ($orders as $o) {
+    $s = strtolower($o['status'] ?? 'pending');
+    if ($s === 'pending' || $s === 'confirmed') $stats['pending']++;
+    elseif (in_array($s, ['shipped','delivering','out_for_delivery','in_transit'])) $stats['delivering']++;
+    elseif ($s === 'completed' || $s === 'delivered') $stats['completed']++;
+    elseif ($s === 'cancelled') $stats['cancelled']++;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -221,13 +253,1193 @@ unset($order);
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>My Orders — <?php echo htmlspecialchars($store_settings['store_name']); ?></title>
     <link rel="icon" type="image/x-icon" href="upload/picture/logo.png">
-    <link rel="stylesheet" href="styles.css" />
-        <link rel="stylesheet" href="asset/style/orders.css" />
-    <link rel="stylesheet" href="asset/style/index.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-    <!-- Leaflet CSS for map tracking -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="asset/style/beautiful-ui.css">
+    <link rel="stylesheet" href="asset/style/animations.css">
     <?php echo getStoreThemeCSS(); ?>
+    <style>
+        :root {
+            /* Use store theme colors */
+            --primary: var(--store-primary, #6366f1);
+            --primary-dark: var(--store-secondary, #4f46e5);
+            --primary-light: var(--store-accent, #818cf8);
+            --primary-bg: var(--store-primary-light, rgba(99, 102, 241, 0.08));
+            --success: #10b981;
+            --success-bg: rgba(16, 185, 129, 0.1);
+            --warning: #f59e0b;
+            --warning-bg: rgba(245, 158, 11, 0.1);
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --info: #3b82f6;
+            --info-bg: rgba(59, 130, 246, 0.1);
+            --text-primary: var(--store-text, #1f2937);
+            --text-secondary: var(--store-text-secondary, #6b7280);
+            --text-muted: var(--store-text-secondary, #9ca3af);
+            --bg-primary: var(--store-card-bg, #ffffff);
+            --bg-secondary: var(--store-bg, #f9fafb);
+            --bg-tertiary: var(--store-bg-secondary, #f3f4f6);
+            --border-color: var(--store-border, #e5e7eb);
+            --border-light: var(--store-border, #f3f4f6);
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --transition: all 0.2s ease;
+        }
+
+        /* ===== PAGE ADJUSTMENTS FOR NAV-MODERN ===== */
+        body {
+            padding-top: 0;
+        }
+        
+        .announcement-bar {
+            text-align: center;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .announcement-bar p {
+            margin: 0;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: var(--store-font, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== MAIN CONTAINER ===== */
+        .orders-page {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        /* ===== HERO HEADER ===== */
+        .orders-hero {
+            background: var(--store-gradient, linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%));
+            border-radius: var(--radius-xl);
+            padding: 3rem 2.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px -10px var(--primary);
+        }
+
+        .orders-hero::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            pointer-events: none;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .orders-hero::after {
+            content: '';
+            position: absolute;
+            bottom: -80px;
+            left: -50px;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 60%);
+            pointer-events: none;
+            animation: float 8s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .hero-text {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 1rem;
+        }
+
+        .hero-badge i {
+            font-size: 0.9rem;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 0 0 0.75rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .hero-title i {
+            font-size: 2rem;
+            opacity: 0.9;
+        }
+
+        .hero-title svg {
+            width: 36px;
+            height: 36px;
+            opacity: 0.9;
+        }
+
+        .hero-subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1rem;
+            margin: 0;
+            max-width: 400px;
+            line-height: 1.6;
+        }
+
+        .hero-illustration {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .hero-icon-box {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: bounce 2s ease-in-out infinite;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .hero-icon-box i {
+            font-size: 2.5rem;
+            color: #fff;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @media (max-width: 768px) {
+            .orders-hero {
+                padding: 2rem 1.5rem;
+            }
+            
+            .hero-title {
+                font-size: 1.75rem;
+            }
+            
+            .hero-illustration {
+                display: none;
+            }
+        }
+
+        /* ===== STATS CARDS ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-icon svg { width: 20px; height: 20px; }
+
+        .stat-icon.total { background: var(--primary-bg); color: var(--primary); }
+        .stat-icon.pending { background: var(--warning-bg); color: var(--warning); }
+        .stat-icon.delivering { background: var(--info-bg); color: var(--info); }
+        .stat-icon.completed { background: var(--success-bg); color: var(--success); }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* ===== CONTROLS BAR ===== */
+        .controls-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 280px;
+            position: relative;
+        }
+
+        .search-box svg {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.875rem 1rem 0.875rem 2.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .filter-select {
+            padding: 0.875rem 2.5rem 0.875rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: var(--bg-primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 1rem center;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: var(--transition);
+            appearance: none;
+            min-width: 160px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        /* ===== ORDERS LIST ===== */
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* ===== ORDER CARD ===== */
+        .order-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .order-card:hover {
+            box-shadow: var(--shadow-lg);
+            border-color: var(--border-light);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--bg-tertiary);
+        }
+
+        .order-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .order-number {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .order-number svg {
+            width: 16px;
+            height: 16px;
+            color: var(--primary);
+        }
+
+        .order-date {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .order-date svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .status-badge svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .status-pending {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .status-confirmed {
+            background: var(--info-bg);
+            color: var(--info);
+        }
+
+        .status-shipped, .status-delivering, .status-in_transit, .status-out_for_delivery {
+            background: var(--info-bg);
+            color: var(--info);
+        }
+
+        .status-delivered, .status-completed {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .status-cancelled {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .status-refund_requested {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%);
+            color: #7c3aed;
+        }
+
+        /* Order Content */
+        .order-content {
+            padding: 1.5rem;
+        }
+
+        .order-items-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .order-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-md);
+            align-items: center;
+        }
+
+        .item-image {
+            width: 72px;
+            height: 72px;
+            border-radius: var(--radius-sm);
+            object-fit: cover;
+            background: var(--bg-tertiary);
+            flex-shrink: 0;
+        }
+
+        .item-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .item-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-variant {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.35rem;
+        }
+
+        .item-price {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Order Footer */
+        .order-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border-light);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .order-shipping {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            max-width: 300px;
+        }
+
+        .order-shipping svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            color: var(--text-muted);
+        }
+
+        .order-total {
+            text-align: right;
+        }
+
+        .total-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .total-value {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Order Actions */
+        .order-actions {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem 1.5rem;
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-light);
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1.15rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--text-muted);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-warning {
+            background: var(--warning-bg);
+            color: #b45309;
+        }
+
+        .btn-warning:hover {
+            background: var(--warning);
+            color: #fff;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== EMPTY STATE ===== */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--bg-tertiary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .empty-icon svg {
+            width: 36px;
+            height: 36px;
+            color: var(--text-muted);
+        }
+
+        .empty-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 0.5rem;
+        }
+
+        .empty-text {
+            color: var(--text-secondary);
+            margin: 0 0 1.5rem;
+        }
+
+        /* ===== MODALS ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+            padding: 1rem;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            max-width: 600px;
+            width: 100%;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.95) translateY(10px);
+            transition: var(--transition);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal-title svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary);
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            border: none;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .modal-close svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+        }
+
+        /* Track Map */
+        #trackMap {
+            width: 100%;
+            height: 350px;
+            border-radius: var(--radius-md);
+            background: var(--bg-tertiary);
+        }
+
+        .track-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Details Modal Content */
+        .details-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .details-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .details-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .details-value {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+        }
+
+        .details-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .details-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+        }
+
+        .details-item img {
+            width: 56px;
+            height: 56px;
+            border-radius: 6px;
+            object-fit: cover;
+        }
+
+        .details-item-info {
+            flex: 1;
+        }
+
+        .details-item-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .details-item-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .details-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 1rem;
+        }
+
+        .details-total-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .details-total-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* ===== TOAST NOTIFICATIONS ===== */
+        .toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .toast {
+            padding: 1rem 1.25rem;
+            border-radius: var(--radius-md);
+            background: var(--text-primary);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 900px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .orders-page {
+                padding: 1rem;
+            }
+
+            .orders-hero {
+                padding: 1.5rem;
+            }
+
+            .hero-title {
+                font-size: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.75rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .stat-value {
+                font-size: 1.35rem;
+            }
+
+            .controls-bar {
+                flex-direction: column;
+            }
+
+            .search-box {
+                min-width: auto;
+            }
+
+            .filter-select {
+                width: 100%;
+            }
+
+            .order-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.75rem;
+            }
+
+            .order-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .item-image {
+                width: 100%;
+                height: 120px;
+            }
+
+            .order-footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .order-total {
+                text-align: left;
+                width: 100%;
+            }
+
+            .order-actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* ===== REFUND MODAL SPECIFIC STYLES ===== */
+        .refund-modal-content {
+            max-width: 480px;
+        }
+
+        .refund-modal-content .modal-header {
+            background: linear-gradient(135deg, var(--primary-bg) 0%, var(--bg-tertiary) 100%);
+            border-bottom: none;
+        }
+
+        .refund-modal-content .modal-title {
+            color: var(--primary-dark);
+        }
+
+        .refund-modal-content .modal-title svg {
+            color: var(--primary);
+            width: 20px;
+            height: 20px;
+        }
+
+        .refund-modal-content .modal-close {
+            color: var(--primary-dark);
+        }
+
+        .refund-modal-content .modal-close:hover {
+            background: var(--primary-bg);
+        }
+
+        .refund-order-info {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin: 0 0 1.25rem;
+            padding: 0.875rem 1rem;
+            background: linear-gradient(135deg, var(--primary-bg) 0%, transparent 100%);
+            border-radius: 8px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .refund-order-info strong {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .form-group .text-muted {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            resize: vertical;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            box-sizing: border-box;
+        }
+
+        .form-control:hover {
+            border-color: var(--primary-light);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-bg);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        .refund-notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary-bg) 0%, transparent 100%);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .refund-notice::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 4px 0 0 4px;
+        }
+
+        .refund-notice svg {
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            max-width: 20px;
+            flex-shrink: 0;
+            color: var(--primary);
+            margin-top: 2px;
+        }
+
+        .refund-notice span {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .refund-modal-content .modal-footer {
+            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .refund-modal-content .modal-footer .btn-warning {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            font-weight: 600;
+            border: none;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .refund-modal-content .modal-footer .btn-warning:hover {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Request Refund Button */
+        .request-refund {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .request-refund:hover {
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Refund Status Button */
+        .refund-status-btn {
+            cursor: not-allowed !important;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            border: none !important;
+        }
+
+        .refund-status-btn[data-refund-status="requested"],
+        .refund-status-btn[data-refund-status="processing"] {
+            background: linear-gradient(135deg, var(--warning-bg) 0%, rgba(245, 158, 11, 0.15) 100%) !important;
+            color: #92400e !important;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+        }
+
+        .refund-status-btn[data-refund-status="pickup_scheduled"],
+        .refund-status-btn[data-refund-status="picked_up"] {
+            background: linear-gradient(135deg, var(--info-bg) 0%, rgba(59, 130, 246, 0.15) 100%) !important;
+            color: #1e40af !important;
+        }
+
+        .refund-status-btn[data-refund-status="resolved"] {
+            background: linear-gradient(135deg, var(--success-bg) 0%, rgba(16, 185, 129, 0.15) 100%) !important;
+            color: #065f46 !important;
+        }
+
+        .refund-status-btn[data-refund-status="rejected"] {
+            background: linear-gradient(135deg, var(--danger-bg) 0%, rgba(239, 68, 68, 0.15) 100%) !important;
+            color: #991b1b !important;
+        }
+
+        .spinner-sm {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <!-- Announcement Bar -->
@@ -237,236 +1449,439 @@ unset($order);
     </div>
     <?php endif; ?>
 
-    <!-- Site navigation (matching user-interface.php) -->
-    <div class="toast-container" id="toast-container"></div>
-    <nav>
+    <!-- Site navigation -->
+    <nav class="nav-modern">
         <div class="logo">
-            <a href="user-interface.php"><?php echo htmlspecialchars($store_settings['store_name']); ?></a>
+            <a href="user-interface.php" class="logo-modern">
+                <span class="gradient-text-accent"><?php echo htmlspecialchars($store_settings['store_name']); ?></span>
+                <span class="logo-sparkle">✨</span>
+            </a>
         </div>
-        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation" tabindex="0">☰</button>
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation" tabindex="0">
+            <i class="fas fa-bars"></i>
+        </button>
         <ul class="nav-links" id="nav-links">
-            <li><a href="user-interface.php">Home</a></li>
-            <li><a href="index.php">Best Seller</a></li>
-            <li><a href="shoes.php">Shoes</a></li>
-            <li><a href="brand.php">Brand</a></li>
+            <li><a href="user-interface.php" class="nav-link-enhanced"><i class="fas fa-home nav-icon"></i> Home</a></li>
+            <li><a href="best-seller.php" class="nav-link-enhanced"><i class="fas fa-star nav-icon"></i> Best Seller</a></li>
+            <li><a href="shoes.php" class="nav-link-enhanced"><i class="fas fa-shoe-prints nav-icon"></i> Shoes</a></li>
+            <li><a href="brand.php" class="nav-link-enhanced"><i class="fas fa-tags nav-icon"></i> Brand</a></li>
         </ul>
         <div class="nav-right">
-            <form class="nav-search" action="shoes.php" method="get" role="search" aria-label="Site search">
-                <input type="search" name="q" placeholder="Search shoes, brands, categories" aria-label="Search" />
+            <form class="nav-search search-modern" action="shoes.php" method="get" role="search" aria-label="Site search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="search" name="q" placeholder="Search shoes, brands, categories..." aria-label="Search" />
             </form>
-            <a href="cart.php" class="cart-icon" id="cart-icon">
-                <span>🛒</span>
+            <a href="cart.php" class="cart-icon cart-icon-modern" id="cart-icon" title="Shopping Cart">
+                <i class="fas fa-shopping-bag"></i>
                 <?php if ($cart_count > 0): ?>
-                    <span class="cart-badge" id="cart-badge"><?php echo $cart_count; ?></span>
+                    <span class="cart-badge cart-badge-modern" id="cart-badge"><?php echo $cart_count; ?></span>
+                <?php else: ?>
+                    <span class="cart-badge cart-badge-modern" id="cart-badge" style="display: none;">0</span>
                 <?php endif; ?>
+                <span class="cart-pulse"></span>
             </a>
             <div class="user-menu" id="user-menu">
                 <div class="user-menu-toggle">
-                    <i class="fa-solid fa-user"></i>
-                    <span class="user-name"><?php echo $customer_name; ?></span>
+                    <div class="user-avatar">
+                        <i class="fa-solid fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-greeting">Hello,</span>
+                        <span class="user-name"><?php echo htmlspecialchars($customer_name); ?></span>
+                    </div>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
                 </div>
                 <div class="user-dropdown">
-                    <a href="user-profile.php">My Profile</a>
-                    <a href="orders.php">My Orders</a>
-                    <a href="logout.php">Logout</a>
+                    <div class="dropdown-header">
+                        <div class="dropdown-avatar"><i class="fas fa-user-circle"></i></div>
+                        <div class="dropdown-user-info">
+                            <span class="dropdown-name"><?php echo htmlspecialchars($customer_name); ?></span>
+                            <span class="dropdown-email">Manage your account</span>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="user-profile.php" class="dropdown-item"><i class="fas fa-user-cog"></i> My Profile</a>
+                    <a href="orders.php" class="dropdown-item"><i class="fas fa-box"></i> My Orders</a>
+                    <a href="#" class="dropdown-item"><i class="fas fa-heart"></i> Wishlist</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="logout.php" class="dropdown-item logout-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
             </div>
         </div>
     </nav>
-    <div class="container orders-container" role="main">
-        <!-- Page Header -->
-        <div class="page-header">
-            <h1><i class="fa-solid fa-box"></i> My Orders</h1>
-            <p>Track and manage all your orders in one place</p>
-        </div>
 
-        <header class="topbar" aria-label="Top bar">
-            <div class="controls" role="region" aria-label="Order controls">
-                <div class="search" role="search">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input id="searchBox" type="search" placeholder="Search orders, products, order #" aria-label="Search orders">
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Main Content -->
+    <main class="orders-page">
+        <!-- Hero Header -->
+        <header class="orders-hero">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="hero-badge">
+                        <i class="fas fa-star"></i>
+                        Order Management
+                    </div>
+                    <h1 class="hero-title">
+                        <i class="fas fa-boxes-stacked"></i>
+                        My Orders
+                    </h1>
+                    <p class="hero-subtitle">Track your purchases, view order history, and manage deliveries all in one place.</p>
                 </div>
-                <select id="statusFilter" class="filter" title="Filter by status" aria-label="Filter orders by status">
-                    <option value="all">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                </select>
+                <div class="hero-illustration">
+                    <div class="hero-icon-box">
+                        <i class="fas fa-box"></i>
+                    </div>
+                </div>
             </div>
         </header>
 
-        <main>
-            <section class="orders" aria-label="Orders list" id="ordersList">
-                <?php if (count($orders) === 0): ?>
-                    <div class="empty" role="status">
-                        <h3>No orders yet</h3>
-                        <p>Looks like you haven't placed any orders. Start shopping to see them here.</p>
-                        <p><a class="btn btn-primary" href="shoes.php">Shop Shoes</a></p>
+        <!-- Stats Cards -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon total">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                </div>
+                <div class="stat-value"><?php echo $stats['total']; ?></div>
+                <div class="stat-label">Total Orders</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon pending">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <div class="stat-value"><?php echo $stats['pending']; ?></div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon delivering">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                        <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                    </svg>
+                </div>
+                <div class="stat-value"><?php echo $stats['delivering']; ?></div>
+                <div class="stat-label">In Transit</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon completed">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <div class="stat-value"><?php echo $stats['completed']; ?></div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </section>
+
+        <!-- Controls Bar -->
+        <div class="controls-bar">
+            <div class="search-box">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input id="searchBox" type="search" placeholder="Search orders, products, order #..." aria-label="Search orders">
+            </div>
+            <select id="statusFilter" class="filter-select" aria-label="Filter by status">
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivering">Delivering</option>
+                <option value="delivered">Delivered</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+        </div>
+
+        <!-- Orders List -->
+        <section class="orders-list" id="ordersList">
+            <?php if (count($orders) === 0): ?>
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        </svg>
                     </div>
-                <?php else: ?>
-                    <?php foreach ($orders as $ord): 
-                        $status = strtolower($ord['status'] ?? 'pending');
-                        $status_class = 'status-pending';
-                        if ($status === 'shipped') $status_class = 'status-shipped';
-                        if ($status === 'delivered') $status_class = 'status-delivered';
-                        if ($status === 'cancelled') $status_class = 'status-cancelled';
+                    <h3 class="empty-title">No orders yet</h3>
+                    <p class="empty-text">Looks like you haven't placed any orders. Start shopping to see them here.</p>
+                    <a class="btn btn-primary" href="shoes.php">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
+                        Start Shopping
+                    </a>
+                </div>
+            <?php else: ?>
+                <?php foreach ($orders as $ord): 
+                    $status = strtolower($ord['status'] ?? 'pending');
+                    $status_class = 'status-' . $status;
 
-                        // Safe created_at formatting: if the column contains a valid datetime use it, otherwise show a styled fallback
-                        $raw_created = $ord['created_at'] ?? '';
-                        if (!empty($raw_created) && strtotime($raw_created) !== false) {
-                            $created = '<i class="fa-regular fa-calendar"></i> ' . date('M j, Y \a\t g:ia', strtotime($raw_created));
-                        } else {
-                            $created = '<span class="fallback">—</span>';
-                        }
+                    // Safe created_at formatting
+                    $raw_created = $ord['created_at'] ?? '';
+                    if (!empty($raw_created) && strtotime($raw_created) !== false) {
+                        $created_display = date('M j, Y \a\t g:ia', strtotime($raw_created));
+                    } else {
+                        $created_display = '—';
+                    }
 
-                        // Order number fallback: use order_number if present, otherwise order_id
-                        $display_order_number = $ord['order_number'] ?? $ord['order_id'];
+                    $display_order_number = $ord['order_number'] ?? $ord['order_id'];
+                    $raw_payment = trim((string)($ord['payment_method'] ?? ''));
+                    $payment_display = $raw_payment !== '' ? htmlspecialchars($raw_payment, ENT_QUOTES, 'UTF-8') : '—';
 
-                        // Payment method fallback for UI (use fallback class when empty)
-                        $raw_payment = trim((string)($ord['payment_method'] ?? ''));
-                        if ($raw_payment !== '') {
-                            $payment_method_display = htmlspecialchars($raw_payment, ENT_QUOTES, 'UTF-8');
-                        } else {
-                            $payment_method_display = '<span class="fallback">—</span>';
-                        }
-                    ?>
-                        <article class="order-card" data-order-id="<?php echo $ord['order_id']; ?>" data-status="<?php echo htmlspecialchars($status); ?>">
-                            <div class="order-meta">
-                                <div class="order-left">
-                                    <div>
-                                        <div class="order-number">Order #<?php echo htmlspecialchars($display_order_number, ENT_QUOTES, 'UTF-8'); ?></div>
-                                        <div class="order-date"><?php echo $created; ?></div>
-                                    </div>
+                    // Status icon
+                    $status_icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+                    $status_display = ucfirst(str_replace('_', ' ', $status));
+                    
+                    if ($status === 'completed' || $status === 'delivered') {
+                        $status_icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+                    } elseif ($status === 'cancelled') {
+                        $status_icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+                    } elseif ($status === 'refund_requested') {
+                        $status_icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>';
+                        $status_display = 'Refund Requested';
+                    } elseif (in_array($status, ['shipped','delivering','in_transit','out_for_delivery'])) {
+                        $status_icon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>';
+                    }
+                ?>
+                    <article class="order-card" data-order-id="<?php echo $ord['order_id']; ?>" data-status="<?php echo htmlspecialchars($status); ?>">
+                        <!-- Order Header -->
+                        <div class="order-header">
+                            <div class="order-info">
+                                <div class="order-number">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                        <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                                    </svg>
+                                    Order #<?php echo htmlspecialchars($display_order_number, ENT_QUOTES, 'UTF-8'); ?>
                                 </div>
-                                <div>
-                                    <span class="status-badge <?php echo $status_class; ?>"><?php echo ucfirst($status); ?></span>
+                                <div class="order-date">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                                        <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                                    </svg>
+                                    <?php echo $created_display; ?>
                                 </div>
                             </div>
+                            <span class="status-badge <?php echo $status_class; ?>">
+                                <?php echo $status_icon; ?>
+                                <?php echo $status_display; ?>
+                            </span>
+                        </div>
 
-                            <div class="order-body">
-                                <div class="order-items" aria-hidden="false">
-                                    <?php if (!empty($ord['items'])): ?>
-                                        <?php foreach ($ord['items'] as $it): 
-                                            // Normalize image paths (convert backslashes to slashes) to avoid broken images on Windows-stored paths
-                                            $raw_img = $it['image_url'] ?? 'upload/product-image/placeholder.png';
-                                            $raw_img = str_replace('\\','/', $raw_img);
-                                            $img = htmlspecialchars($raw_img, ENT_QUOTES, 'UTF-8');
-
-                                            // Product name: prefer a real name, otherwise show a styled fallback
-                                            $raw_name = trim((string)($it['product_name'] ?? ''));
-                                            if ($raw_name !== '') {
-                                                $pname_html = htmlspecialchars($raw_name, ENT_QUOTES, 'UTF-8');
-                                            } else {
-                                                $pname_html = '<span class="fallback">Unknown product</span>';
-                                            }
-                                            // safe attribute form (no HTML)
-                                            $pname_attr = htmlspecialchars($raw_name !== '' ? $raw_name : 'Unknown product', ENT_QUOTES, 'UTF-8');
-
-                                            $color = htmlspecialchars($it['color_name'] ?? '', ENT_QUOTES, 'UTF-8');
-                                            $size = htmlspecialchars($it['size'] ?? '', ENT_QUOTES, 'UTF-8');
-                                            $qty = (int)($it['quantity'] ?? 1);
-                                            $unit = htmlspecialchars($it['unit_price'] ?? '0.00', ENT_QUOTES, 'UTF-8');
-                                        ?>
-                                            <div class="item" title="<?php echo $pname_attr; ?>">
-                                                <img src="<?php echo $img; ?>" alt="<?php echo $pname_attr; ?>">
-                                                <div class="meta">
-                                                    <strong><?php echo $pname_html; ?></strong>
-                                                    <span><?php echo $color; ?> <?php echo $size ? "· Size $size" : ''; ?></span>
-                                                    <span style="display:block;margin-top:6px;color:var(--muted)"><?php echo "₱{$unit} × {$qty}"; ?></span>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <div class="item">
-                                            <div class="meta">
-                                                <strong>No items found</strong>
+                        <!-- Order Content -->
+                        <div class="order-content">
+                            <div class="order-items-grid">
+                                <?php if (!empty($ord['items'])): ?>
+                                    <?php foreach ($ord['items'] as $it): 
+                                        $raw_img = $it['image_url'] ?? 'upload/product-image/placeholder.png';
+                                        $raw_img = str_replace('\\','/', $raw_img);
+                                        $img = htmlspecialchars($raw_img, ENT_QUOTES, 'UTF-8');
+                                        $raw_name = trim((string)($it['product_name'] ?? ''));
+                                        $pname = $raw_name !== '' ? htmlspecialchars($raw_name, ENT_QUOTES, 'UTF-8') : 'Unknown product';
+                                        $color = htmlspecialchars($it['color_name'] ?? '', ENT_QUOTES, 'UTF-8');
+                                        $size = htmlspecialchars($it['size'] ?? '', ENT_QUOTES, 'UTF-8');
+                                        $qty = (int)($it['quantity'] ?? 1);
+                                        $total_price = (float)str_replace(',', '', $it['unit_price'] ?? '0.00');
+                                        // unit_price column actually stores total (unit × qty), so calculate per-unit
+                                        $per_unit = $qty > 0 ? $total_price / $qty : $total_price;
+                                        $per_unit_formatted = number_format($per_unit, 2);
+                                    ?>
+                                        <div class="order-item">
+                                            <img class="item-image" src="<?php echo $img; ?>" alt="<?php echo $pname; ?>">
+                                            <div class="item-details">
+                                                <div class="item-name"><?php echo $pname; ?></div>
+                                                <div class="item-variant"><?php echo $color; ?><?php echo $size ? " · Size $size" : ''; ?></div>
+                                                <div class="item-price">₱<?php echo $per_unit_formatted; ?> × <?php echo $qty; ?></div>
                                             </div>
                                         </div>
-                                    <?php endif; ?>
-                                </div>
-
-                                <div class="order-summary" aria-label="Order summary">
-                                    <div class="total-label">Total</div>
-                                    <div class="total-value">₱<?php echo htmlspecialchars($ord['total_amount']); ?></div>
-                                    <div style="margin-top:8px;color:var(--orders-muted);font-size:13px;"><?php echo $payment_method_display; ?></div>
-
-                                    <div class="order-actions" role="group" aria-label="Order actions">
-                                        <button type="button" class="btn btn-ghost view-details" data-order-id="<?php echo $ord['order_id']; ?>" title="View details" aria-label="View order details">
-                                            <i class="fa-regular fa-eye"></i> Details
-                                        </button>
-
-                                        <?php
-                                            // Show a Track button when order is in transit/delivering
-                                            $trackable_statuses = ['shipped','out_for_delivery','delivering','in_transit','on_the_way'];
-                                            if (in_array($status, $trackable_statuses, true)): ?>
-                                            <button type="button" class="btn btn-outline track-order" data-order-id="<?php echo $ord['order_id']; ?>" title="Track order" aria-label="Track this order">
-                                                <i class="fa-solid fa-location-dot"></i> Track
-                                            </button>
-                                        <?php endif; ?>
-
-                                        <?php if ($status === 'pending'): ?>
-                                            <button type="button" class="btn btn-danger cancel-order" data-order-id="<?php echo $ord['order_id']; ?>" title="Cancel order" aria-label="Cancel this order">
-                                                <i class="fa-solid fa-xmark"></i> Cancel
-                                            </button>
-                                        <?php elseif ($status === 'shipped' || $status === 'out_for_delivery' || $status === 'delivering' || $status === 'in_transit'): ?>
-                                            <button type="button" class="btn btn-primary confirm-received" data-order-id="<?php echo $ord['order_id']; ?>" title="Mark as received" aria-label="Mark order as received">
-                                                <i class="fa-solid fa-check"></i> Mark Received
-                                            </button>
-                                        <?php elseif ($status === 'completed'): ?>
-                                            <button type="button" class="btn btn-warning request-refund" data-order-id="<?php echo $ord['order_id']; ?>" title="Request refund" aria-label="Request a refund">
-                                                <i class="fa-solid fa-arrow-rotate-left"></i> Request Refund
-                                            </button>
-                                        <?php else: ?>
-                                            <button class="btn btn-ghost" disabled><?php echo ucfirst($status); ?></button>
-                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <div class="order-item">
+                                        <div class="item-details">
+                                            <div class="item-name">No items found</div>
+                                        </div>
                                     </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="order-footer">
+                                <div class="order-shipping">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                    <span><?php $ship = trim((string)($ord['shipping_address'] ?? '')); echo $ship !== '' ? nl2br(htmlspecialchars($ship, ENT_QUOTES, 'UTF-8')) : '—'; ?></span>
+                                </div>
+                                <div class="order-total">
+                                    <div class="total-label">Total • <?php echo $payment_display; ?></div>
+                                    <div class="total-value">₱<?php echo htmlspecialchars($ord['total_amount']); ?></div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="order-shipping">
-                                <strong>Shipping:</strong>
-                                <div><?php $ship = trim((string)($ord['shipping_address'] ?? '')); if ($ship !== '') { echo nl2br(htmlspecialchars($ship, ENT_QUOTES, 'UTF-8')); } else { echo '<span class="fallback">—</span>'; } ?></div>
-                            </div>
-                        </article>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </section>
+                        <!-- Order Actions -->
+                        <div class="order-actions">
+                            <button type="button" class="btn btn-secondary view-details" data-order-id="<?php echo $ord['order_id']; ?>">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                View Details
+                            </button>
 
-        </main>
-    </div>
+                            <?php
+                                $trackable_statuses = ['shipped','out_for_delivery','delivering','in_transit','on_the_way'];
+                                if (in_array($status, $trackable_statuses, true)): ?>
+                                <button type="button" class="btn btn-primary track-order" data-order-id="<?php echo $ord['order_id']; ?>">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                    Track Order
+                                </button>
+                            <?php endif; ?>
 
-    <!-- Details modal -->
-    <div id="detailsModal" class="details-modal" role="dialog" aria-modal="true" aria-hidden="true">
-        <div class="dialog" role="document" aria-labelledby="detailsTitle">
-            <div class="header">
-                <div id="detailsTitle"><strong><i class="fa-solid fa-receipt" style="color: var(--orders-accent, #d4a574); margin-right: 8px;"></i>Order Details</strong></div>
-                <button id="closeDetails" class="btn btn-ghost" aria-label="Close details"><i class="fa-solid fa-xmark"></i></button>
+                            <?php if ($status === 'pending'): ?>
+                                <button type="button" class="btn btn-danger cancel-order" data-order-id="<?php echo $ord['order_id']; ?>">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                                    </svg>
+                                    Cancel Order
+                                </button>
+                            <?php elseif (in_array($status, ['shipped','out_for_delivery','delivering','in_transit'])): ?>
+                                <button type="button" class="btn btn-success confirm-received" data-order-id="<?php echo $ord['order_id']; ?>">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                    Mark Received
+                                </button>
+                            <?php elseif ($status === 'completed'): ?>
+                                <?php if (!empty($ord['refund_status'])): ?>
+                                    <button type="button" class="btn btn-ghost refund-status-btn" disabled data-refund-status="<?php echo htmlspecialchars($ord['refund_status']); ?>">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <?php if ($ord['refund_status'] === 'resolved'): ?>
+                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                                            <?php elseif ($ord['refund_status'] === 'rejected'): ?>
+                                                <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+                                            <?php else: ?>
+                                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                            <?php endif; ?>
+                                        </svg>
+                                        <?php 
+                                            $refund_labels = [
+                                                'requested' => 'Refund Pending',
+                                                'processing' => 'Refund Processing',
+                                                'pickup_scheduled' => 'Pickup Scheduled',
+                                                'picked_up' => 'Item Picked Up',
+                                                'resolved' => 'Refund Completed',
+                                                'rejected' => 'Refund Rejected'
+                                            ];
+                                            echo $refund_labels[$ord['refund_status']] ?? 'Refund ' . ucfirst($ord['refund_status']);
+                                        ?>
+                                    </button>
+                                <?php else: ?>
+                                    <button type="button" class="btn btn-warning request-refund" data-order-id="<?php echo $ord['order_id']; ?>">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                                        </svg>
+                                        Request Refund
+                                    </button>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </section>
+    </main>
+
+    <!-- Details Modal -->
+    <div id="detailsModal" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    Order Details
+                </div>
+                <button id="closeDetails" class="modal-close" aria-label="Close details">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
-            <div class="body">
+            <div class="modal-body">
                 <div id="detailsBody"></div>
             </div>
-            <div class="footer">
+            <div class="modal-footer">
                 <button id="closeDetails2" class="btn btn-primary">Close</button>
             </div>
         </div>
     </div>
 
-    <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="true"></div>
+    <!-- Refund Modal -->
+    <div id="refundModal" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal-content refund-modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                    </svg>
+                    Request Refund
+                </div>
+                <button id="closeRefund" class="modal-close" aria-label="Close refund modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="refund-order-info">Order <strong id="refundOrderId">#</strong></p>
+                <div class="form-group">
+                    <label for="refundReason">Reason for refund <span class="text-muted">(optional)</span></label>
+                    <textarea id="refundReason" class="form-control" rows="4" placeholder="Please tell us why you want a refund..."></textarea>
+                </div>
+                <div class="refund-notice">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <span>Refund requests are typically processed within 3-5 business days. You will be notified once your request is reviewed.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelRefund" class="btn btn-secondary">Cancel</button>
+                <button id="submitRefund" class="btn btn-warning">Submit Refund Request</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- Track modal -->
-    <div id="trackModal" class="track-modal" role="dialog" aria-modal="true" aria-hidden="true">
-        <div class="dialog" role="document" aria-labelledby="trackTitle">
-            <div class="header">
-                <div id="trackTitle"><strong><i class="fa-solid fa-location-dot" style="color: var(--orders-accent, #d4a574); margin-right: 8px;"></i>Track Order</strong></div>
-                <button id="closeTrack" class="btn btn-ghost" aria-label="Close map"><i class="fa-solid fa-xmark"></i></button>
+    <!-- Track Modal -->
+    <div id="trackModal" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    Track Order
+                </div>
+                <button id="closeTrack" class="modal-close" aria-label="Close map">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
             </div>
-            <div class="body">
+            <div class="modal-body">
                 <div id="trackMap"></div>
+                <div id="trackFallback" class="track-info" style="margin-top: 1rem;"></div>
             </div>
-            <div class="footer">
-                <div id="trackFallback" class="track-info" style="float:left"></div>
+            <div class="modal-footer">
                 <button id="closeTrack2" class="btn btn-primary">Close</button>
             </div>
         </div>
@@ -493,12 +1908,12 @@ unset($order);
                 document.addEventListener('click', (e) => { if (!userMenu.contains(e.target)) userMenu.classList.remove('active'); });
             }
         })();
-        // Simple client-side filtering, actions via fetch to server endpoint (orders_action.php)
+
+        // Client-side filtering and actions
         (function(){
             const ordersList = document.getElementById('ordersList');
             const searchBox = document.getElementById('searchBox');
             const statusFilter = document.getElementById('statusFilter');
-            const chips = document.querySelectorAll('.chip');
             const toastContainer = document.getElementById('toast-container');
 
             function showToast(message, isError=false){
@@ -532,16 +1947,6 @@ unset($order);
             searchBox.addEventListener('input', filterOrders);
             statusFilter.addEventListener('change', filterOrders);
 
-            chips.forEach(c => {
-                c.addEventListener('click', () => {
-                    chips.forEach(x => x.classList.remove('active'));
-                    c.classList.add('active');
-                    const f = c.getAttribute('data-filter');
-                    statusFilter.value = f === 'all' ? 'all' : f;
-                    filterOrders();
-                });
-            });
-
             // DETAILS: open a modal with full order details (client-side data from ORDERS_DATA)
             function escapeHtml(str){
                 if (str === null || typeof str === 'undefined') return '';
@@ -565,19 +1970,34 @@ unset($order);
 
             function buildDetailsHtml(order){
                 const parts = [];
-                parts.push('<div class="details-meta" style="margin-bottom:10px">');
-                parts.push('<div><strong>Order #</strong> ' + escapeHtml(order.order_number || order.order_id) + '</div>');
-                parts.push('<div style="color:var(--muted);font-size:0.95rem">' + escapeHtml(order.created_at || '') + '</div>');
-                parts.push('<div style="margin-top:6px"><strong>Status:</strong> ' + escapeHtml(order.status || '') + '</div>');
+                
+                // Order Info Section
+                parts.push('<div class="details-section">');
+                parts.push('<div class="details-label">Order Information</div>');
+                parts.push('<div class="details-value"><strong>Order #' + escapeHtml(order.order_number || order.order_id) + '</strong></div>');
+                parts.push('<div class="details-value" style="color: var(--text-secondary); font-size: 0.9rem;">' + escapeHtml(order.created_at || '') + '</div>');
+                parts.push('<div class="details-value" style="margin-top: 0.5rem;"><span style="text-transform: capitalize; padding: 0.25rem 0.75rem; border-radius: 50px; font-size: 0.8rem; font-weight: 600; background: var(--primary-bg); color: var(--primary);">' + escapeHtml(order.status || '') + '</span></div>');
                 parts.push('</div>');
 
-                parts.push('<div style="margin-bottom:10px"><strong>Payment:</strong> ' + escapeHtml(order.payment_method || '—') + '</div>');
-                parts.push('<div style="margin-bottom:12px"><strong>Shipping address:</strong><div style="margin-top:6px;color:#333">' + (order.shipping_address ? escapeHtml(order.shipping_address).replace(/\n/g,'<br>') : '—') + '</div></div>');
+                // Payment Section
+                parts.push('<div class="details-section">');
+                parts.push('<div class="details-label">Payment Method</div>');
+                parts.push('<div class="details-value">' + escapeHtml(order.payment_method || '—') + '</div>');
+                parts.push('</div>');
 
-                parts.push('<div class="details-list">');
+                // Shipping Section
+                parts.push('<div class="details-section">');
+                parts.push('<div class="details-label">Shipping Address</div>');
+                parts.push('<div class="details-value">' + (order.shipping_address ? escapeHtml(order.shipping_address).replace(/\n/g,'<br>') : '—') + '</div>');
+                parts.push('</div>');
+
+                // Items Section
+                parts.push('<div class="details-section">');
+                parts.push('<div class="details-label">Items</div>');
+                parts.push('<div class="details-items">');
                 if (Array.isArray(order.items) && order.items.length){
                     order.items.forEach(it => {
-                        const img = escapeHtml((it.image_url || 'upload/product-image/placeholder.png').replace('\\','/'));
+                        const img = escapeHtml((it.image_url || 'upload/product-image/placeholder.png').replace(/\\/g,'/'));
                         const name = escapeHtml(it.product_name || 'Unknown product');
                         const qty = escapeHtml(it.quantity || '1');
                         const unit = escapeHtml(it.unit_price || '0.00');
@@ -585,19 +2005,24 @@ unset($order);
                         const size = escapeHtml(it.size || '');
                         parts.push('<div class="details-item">');
                         parts.push('<img src="' + img + '" alt="' + name + '">');
-                        parts.push('<div style="flex:1">');
-                        parts.push('<div style="font-weight:600">' + name + '</div>');
-                        parts.push('<div style="color:var(--muted);font-size:0.95rem">' + (color ? color + (size ? ' · Size ' + size : '') : (size ? 'Size ' + size : '')) + '</div>');
-                        parts.push('<div style="margin-top:6px;color:var(--muted)">₱' + unit + ' × ' + qty + '</div>');
+                        parts.push('<div class="details-item-info">');
+                        parts.push('<div class="details-item-name">' + name + '</div>');
+                        parts.push('<div class="details-item-meta">' + (color ? color + (size ? ' · Size ' + size : '') : (size ? 'Size ' + size : '—')) + '</div>');
+                        parts.push('<div class="details-item-meta">₱' + unit + ' × ' + qty + '</div>');
                         parts.push('</div>');
                         parts.push('</div>');
                     });
                 } else {
-                    parts.push('<div class="details-item"><div style="flex:1"><strong>No items</strong></div></div>');
+                    parts.push('<div class="details-item"><div class="details-item-info"><div class="details-item-name">No items</div></div></div>');
                 }
                 parts.push('</div>');
+                parts.push('</div>');
 
-                parts.push('<div style="margin-top:12px;text-align:right;font-weight:700">Total: ₱' + escapeHtml(order.total_amount || '0.00') + '</div>');
+                // Total
+                parts.push('<div class="details-total">');
+                parts.push('<span class="details-total-label">Total</span>');
+                parts.push('<span class="details-total-value">₱' + escapeHtml(order.total_amount || '0.00') + '</span>');
+                parts.push('</div>');
                 return parts.join('');
             }
 
@@ -675,38 +2100,93 @@ unset($order);
                 });
             });
 
-            // Request refund action (sends to request_refund.php)
+            // Refund Modal functionality
+            const refundModal = document.getElementById('refundModal');
+            const refundOrderIdEl = document.getElementById('refundOrderId');
+            const refundReasonEl = document.getElementById('refundReason');
+            const closeRefundBtn = document.getElementById('closeRefund');
+            const cancelRefundBtn = document.getElementById('cancelRefund');
+            const submitRefundBtn = document.getElementById('submitRefund');
+            let currentRefundOrderId = null;
+            let currentRefundButton = null;
+
+            function openRefundModal(orderId, btn) {
+                currentRefundOrderId = orderId;
+                currentRefundButton = btn;
+                refundOrderIdEl.textContent = '#' + orderId;
+                refundReasonEl.value = '';
+                refundModal.classList.add('active');
+                refundModal.setAttribute('aria-hidden', 'false');
+                refundReasonEl.focus();
+            }
+
+            function closeRefundModal() {
+                refundModal.classList.remove('active');
+                refundModal.setAttribute('aria-hidden', 'true');
+                currentRefundOrderId = null;
+                currentRefundButton = null;
+            }
+
+            closeRefundBtn?.addEventListener('click', closeRefundModal);
+            cancelRefundBtn?.addEventListener('click', closeRefundModal);
+            refundModal?.addEventListener('click', (e) => {
+                if (e.target === refundModal) closeRefundModal();
+            });
+
+            // Request refund action (opens modal)
             document.querySelectorAll('.request-refund').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
+                btn.addEventListener('click', (e) => {
                     const orderId = btn.dataset.orderId;
                     if (!orderId) return;
-                    if (!confirm('Request a refund for this order?')) return;
-                    btn.disabled = true;
-                    try {
-                        const resp = await fetch('request_refund.php', {
-                            method: 'POST',
-                            headers: { 'Accept': 'application/json' },
-                            body: new URLSearchParams({ order_id: orderId })
-                        });
-                        const txt = await resp.text();
-                        let data = null;
-                        if (txt) {
-                            try { data = JSON.parse(txt); } catch (err) { console.warn('request_refund: invalid JSON', txt); }
-                        }
-                        if (data && data.success) {
-                            showToast(data.message || 'Refund requested');
-                            // disable the refund button to avoid duplicate requests
-                            btn.disabled = true;
-                            btn.classList.add('btn-ghost');
-                        } else {
-                            showToast((data && data.message) ? data.message : 'Refund request failed', true);
-                            btn.disabled = false;
-                        }
-                    } catch (err) {
-                        showToast('Network error', true);
-                        btn.disabled = false;
-                    }
+                    openRefundModal(orderId, btn);
                 });
+            });
+
+            // Submit refund from modal
+            submitRefundBtn?.addEventListener('click', async () => {
+                if (!currentRefundOrderId) return;
+                
+                submitRefundBtn.disabled = true;
+                submitRefundBtn.innerHTML = '<span class="spinner-sm"></span> Submitting...';
+                
+                try {
+                    const resp = await fetch('request_refund.php', {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json' },
+                        body: new URLSearchParams({ 
+                            order_id: currentRefundOrderId,
+                            reason: refundReasonEl.value.trim()
+                        })
+                    });
+                    const txt = await resp.text();
+                    let data = null;
+                    if (txt) {
+                        try { data = JSON.parse(txt); } catch (err) { console.warn('request_refund: invalid JSON', txt); }
+                    }
+                    if (data && data.success) {
+                        showToast(data.message || 'Refund request submitted successfully!');
+                        // Update the button to show pending status
+                        if (currentRefundButton) {
+                            currentRefundButton.disabled = true;
+                            currentRefundButton.classList.remove('btn-warning');
+                            currentRefundButton.classList.add('btn-ghost', 'refund-status-btn');
+                            currentRefundButton.innerHTML = `
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Refund Pending
+                            `;
+                        }
+                        closeRefundModal();
+                    } else {
+                        showToast((data && data.message) ? data.message : 'Refund request failed', true);
+                    }
+                } catch (err) {
+                    showToast('Network error. Please try again.', true);
+                } finally {
+                    submitRefundBtn.disabled = false;
+                    submitRefundBtn.innerHTML = 'Submit Refund Request';
+                }
             });
 
             // TRACKING: fetch location or tracking link and show modal map / fallback
@@ -855,5 +2335,6 @@ unset($order);
 
     <!-- Leaflet JS (placed near bottom to load after DOM) -->
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <?php include __DIR__ . '/partials/chatbot.php'; ?>
 </body>
 </html>

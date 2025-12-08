@@ -1,9 +1,10 @@
 <?php
 
  session_start();
+
 if (!isset($_SESSION['rider_id'])) {
-    header('Location: \login.php');
-    exit;
+    header('Location: ../login.php');
+    exit();
 }
 require_once __DIR__ . '/../db_connection.php';
 
@@ -61,7 +62,52 @@ if ($stmt = $conn->prepare("SELECT o.order_id, c.name AS customer_name, c.addres
     $stmt->close();
 }
 
+// Get deliveries per day for the last 7 days (for chart)
+$chart_data = [];
+$chart_labels = [];
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $dayName = date('D', strtotime("-$i days"));
+    $chart_labels[] = $dayName;
+    $chart_data[$date] = 0;
+}
 
+$sql = "SELECT DATE(order_date) as delivery_date, COUNT(*) as count 
+        FROM orders 
+        WHERE rider_id = ? AND order_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(order_date)";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->bind_param('i', $rider_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    while ($row = $res->fetch_assoc()) {
+        if (isset($chart_data[$row['delivery_date']])) {
+            $chart_data[$row['delivery_date']] = (int)$row['count'];
+        }
+    }
+    $stmt->close();
+}
+$chart_values = array_values($chart_data);
+
+// Get today's counts specifically
+$today_pending = 0;
+$today_completed = 0;
+$sql = "SELECT COUNT(*) FROM orders WHERE rider_id = ? AND DATE(order_date) = CURDATE() AND status IN ('pending', 'confirmed')";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->bind_param('i', $rider_id);
+    $stmt->execute();
+    $stmt->bind_result($today_pending);
+    $stmt->fetch();
+    $stmt->close();
+}
+$sql = "SELECT COUNT(*) FROM orders WHERE rider_id = ? AND DATE(order_date) = CURDATE() AND status = 'completed'";
+if ($stmt = $conn->prepare($sql)) {
+    $stmt->bind_param('i', $rider_id);
+    $stmt->execute();
+    $stmt->bind_result($today_completed);
+    $stmt->fetch();
+    $stmt->close();
+}
 
 $names = array_filter(explode(' ', $rider['name']));
 $initials = '';
@@ -90,117 +136,9 @@ if (count($names) > 0) {
     <link rel="stylesheet" href="assets/css/rider.css">
 </head>
 <body>
-    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="3" y1="12" x2="21" y2="12"/>
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
-    </button>
-
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <?php include 'partials/sidebar.php'; ?>
 
     <div class="dashboard-wrapper">
-        <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
-            <header class="sidebar-header">
-                <div class="rider-avatar" aria-hidden="true"><?php echo htmlspecialchars($initials); ?></div>
-                <div class="rider-info">
-                    <h2><?php echo htmlspecialchars($rider['name']); ?></h2>
-                    <p>Rider #<?php echo (int)$rider_id; ?></p>
-                    <div class="rider-status">
-                        <span class="status-dot" aria-hidden="true"></span>
-                        <span><?php echo ucfirst(htmlspecialchars($rider['status'])); ?></span>
-                    </div>
-                </div>
-            </header>
-
-            <!-- Quick Stats -->
-            <section class="quick-stats" aria-label="Quick statistics">
-                <div class="stat-item">
-                    <span class="stat-label">Active Deliveries</span>
-                    <span class="stat-value highlight"><?php echo (int)$delivering_count; ?></span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Rating</span>
-                    <span class="stat-value">4.9 ⭐</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">On-Time %</span>
-                    <span class="stat-value">98%</span>
-                </div>
-            </section>
-
-            <!-- Navigation -->
-            <nav class="sidebar-nav">
-                <ul class="nav-list" role="menubar">
-                    <li class="nav-item" role="none">
-                        <a href="#" class="nav-link active" role="menuitem" aria-current="page">
-                            <!-- Dashboard Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <rect x="3" y="3" width="7" height="7"/>
-                                <rect x="14" y="3" width="7" height="7"/>
-                                <rect x="14" y="14" width="7" height="7"/>
-                                <rect x="3" y="14" width="7" height="7"/>
-                            </svg>
-                            Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item" role="none">
-                        <a href="#" class="nav-link" role="menuitem">
-                            <!-- Package Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
-                                <path d="m3.3 7 8.7 5 8.7-5"/>
-                                <path d="M12 22V12"/>
-                            </svg>
-                            My Deliveries
-                        </a>
-                    </li>
-                    <li class="nav-item" role="none">
-                        <a href="route_map.php" class="nav-link" role="menuitem">
-                            <!-- Map Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
-                                <line x1="9" y1="3" x2="9" y2="18"/>
-                                <line x1="15" y1="6" x2="15" y2="21"/>
-                            </svg>
-                            Route Map
-                        </a>
-                    </li>
-                    <li class="nav-item" role="none">
-                        <a href="#" class="nav-link" role="menuitem">
-                            <!-- History Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="10"/>
-                                <polyline points="12 6 12 12 16 14"/>
-                            </svg>
-                            History
-                        </a>
-                    </li>
-                    <li class="nav-item" role="none">
-                        <a href="#" class="nav-link" role="menuitem">
-                            <!-- Earnings Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <line x1="12" y1="1" x2="12" y2="23"/>
-                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                            </svg>
-                            Earnings
-                        </a>
-                    </li>
-                    <li class="nav-item" role="none">
-                        <a href="#" class="nav-link" role="menuitem">
-                            <!-- Settings Icon -->
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="3"/>
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                            </svg>
-                            Settings
-                        </a>
-                    </li>
-                </ul>
-            </nav>
-        </aside>
-
         <!-- Main Content -->
         <main class="main-content" role="main">
             <!-- Page Header -->
@@ -244,7 +182,7 @@ if (count($names) > 0) {
                                 <polyline points="12 6 12 12 16 14"/>
                             </svg>
                         </div>
-                        <span class="summary-card-badge">Today</span>
+                        <span class="summary-card-badge">Total</span>
                     </div>
                     <div class="summary-card-value"><?php echo (int)$pending_count; ?></div>
                     <div class="summary-card-label">Pending Pickups</div>
@@ -277,7 +215,7 @@ if (count($names) > 0) {
                                 <path d="M20 6L9 17l-5-5"/>
                             </svg>
                         </div>
-                        <span class="summary-card-badge">Today</span>
+                        <span class="summary-card-badge">Total</span>
                     </div>
                     <div class="summary-card-value"><?php echo (int)$completed_count; ?></div>
                     <div class="summary-card-label">Delivered</div>
@@ -411,7 +349,18 @@ if (count($names) > 0) {
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
+    <!-- Chart Data from Database -->
+    <script>
+        window.chartData = {
+            labels: <?php echo json_encode($chart_labels); ?>,
+            values: <?php echo json_encode($chart_values); ?>
+        };
+    </script>
+    
     <!-- Dashboard JavaScript -->
     <script src="assets/js/rider.js"></script>
+    
+    <!-- Notifications JavaScript -->
+    <script src="assets/js/notifications.js"></script>
 </body>
 </html>

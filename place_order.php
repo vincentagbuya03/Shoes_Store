@@ -116,12 +116,17 @@ try {
     if (empty($variants)) resp_error('Unable to fetch product data');
 
     // Compute totals
-    $total_amount = 0.0;
+    $subtotal = 0.0;
     foreach ($selected as $vid) {
         $price = isset($variants[$vid]['price']) ? (float)$variants[$vid]['price'] : 0.0;
         $qty = isset($quantities[$vid]) ? (int)$quantities[$vid] : 1;
-        $total_amount += $price * $qty;
+        $subtotal += $price * $qty;
     }
+    
+    // Add 12% VAT to get the final total
+    $vat_rate = 0.12;
+    $vat_amount = $subtotal * $vat_rate;
+    $total_amount = $subtotal + $vat_amount;
 
     // Begin transaction (track started state for compatibility)
     $startedTx = false;
@@ -260,8 +265,9 @@ try {
 
         foreach ($selected as $vid) {
             $pid = isset($variants[$vid]['product_id']) ? $variants[$vid]['product_id'] : 0;
-            $price = isset($variants[$vid]['price']) ? (float)$variants[$vid]['price'] : 0.0;
+            $unit_price = isset($variants[$vid]['price']) ? (float)$variants[$vid]['price'] : 0.0;
             $qty = isset($quantities[$vid]) ? (int)$quantities[$vid] : 1;
+            $item_total = $unit_price * $qty; // Store total price (price × quantity) instead of unit price
 
             // prepare values in order
             $vals = [];
@@ -269,7 +275,7 @@ try {
             $vals[] = $vid;
             $vals[] = $pid;
             $vals[] = $qty;
-            $vals[] = $price;
+            $vals[] = $item_total;
             // extras
             $snapshot = [];
             if ($prod_name_col) { $vals[] = (string)($variants[$vid]['product_name'] ?? ''); $snapshot['product_name'] = $variants[$vid]['product_name'] ?? ''; }
@@ -283,8 +289,9 @@ try {
                 'color_name' => $variants[$vid]['color_name'] ?? '',
                 'size_name' => $variants[$vid]['size_name'] ?? '',
                 'image_url' => $variants[$vid]['image_url'] ?? '',
-                'price' => $price,
-                'quantity' => $qty
+                'unit_price' => $unit_price,
+                'quantity' => $qty,
+                'total_price' => $item_total
             ]));
                 $vals[] = $metaJson;
             }

@@ -1,6 +1,34 @@
 <?php
 // API for orders management
+// Suppress PHP errors/warnings from corrupting JSON output
+error_reporting(0);
+ini_set('display_errors', 0);
+
+// Ensure JSON content-type and protect against unexpected PHP errors
 header('Content-Type: application/json; charset=utf-8');
+
+// Start output buffering so we can return a clean JSON response on fatal errors
+if (!ob_get_level()) ob_start();
+
+// Custom error handler to catch non-fatal errors and log them (don't output to client)
+set_error_handler(function($errno, $errstr, $errfile, $errline) {
+    error_log("orders_api.php warning [$errno]: $errstr in $errfile:$errline");
+    return true;
+});
+
+// Shutdown handler: if a fatal error occurred, ensure a valid JSON response is returned
+register_shutdown_function(function() {
+    $err = error_get_last();
+    if ($err !== null) {
+        error_log('orders_api.php fatal: ' . json_encode($err));
+        // Clear any buffered output so we only return JSON
+        while (ob_get_level()) ob_end_clean();
+        http_response_code(500);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'message' => 'Internal server error']);
+    }
+});
+
 require_once __DIR__ . '/../db_connection.php';
 session_start();
 
@@ -43,7 +71,7 @@ function fetch_stmt_assoc($stmt) {
 
 if ($action === 'list') {
     $q = $_GET['q'] ?? '';
-    $sql = "SELECT o.order_id, o.total_amount, o.status, o.order_date, o.rider_id, o.delivery_proof, c.name AS customer_name, r.name AS rider_name
+    $sql = "SELECT o.order_id, o.total_amount, o.status, o.order_date, o.rider_id, o.delivery_proof, o.payment_method, o.payment_proof, c.name AS customer_name, c.email AS customer_email, r.name AS rider_name
             FROM orders o
             LEFT JOIN customer c ON o.customer_id = c.customer_id
             LEFT JOIN rider r ON o.rider_id = r.rider_id
@@ -161,11 +189,16 @@ if ($action === 'refund') {
     $u->bind_param('si', $newStatus, $refundId);
     if (!$u->execute()) jsonError('Update failed');
 
-    // notify admins for audit trail
-    require_once __DIR__ . '/../inc/admin_notifications.php';
-    $title = 'Refund ' . $newStatus . ' for Order #' . $id;
-    $body = 'Admin set refund request ' . $refundId . ' to ' . $newStatus;
-    create_admin_notification($conn, 'refund_' . $newStatus, $title, $body, 'high', ['order_id'=>$id,'refund_id'=>$refundId], '/admin/orders.php?id=' . $id);
+    // notify admins for audit trail (wrapped in try-catch to prevent breaking JSON response)
+    try {
+        @require_once __DIR__ . '/../../inc/admin_notifications.php';
+        $title = 'Refund ' . $newStatus . ' for Order #' . $id;
+        $body = 'Admin set refund request ' . $refundId . ' to ' . $newStatus;
+        @create_admin_notification($conn, 'refund_' . $newStatus, $title, $body, 'high', ['order_id'=>$id,'refund_id'=>$refundId], '/admin/orders.php?id=' . $id);
+    } catch (Exception $e) {
+        // Log but don't fail the response
+        error_log('Refund notification error: ' . $e->getMessage());
+    }
 
     echo json_encode(['success'=>true,'refund_id'=>$refundId,'status'=>$newStatus]); exit;
 }

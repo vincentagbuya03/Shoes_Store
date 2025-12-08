@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Dec 01, 2025 at 02:21 AM
+-- Generation Time: Dec 06, 2025 at 12:49 PM
 -- Server version: 8.4.3
 -- PHP Version: 8.3.26
 
@@ -45,6 +45,130 @@ INSERT INTO `admin` (`admin_id`, `name`, `email`, `password`, `created_at`) VALU
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `admin_notification`
+--
+
+CREATE TABLE `admin_notification` (
+  `id` int NOT NULL,
+  `type` varchar(100) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `body` text,
+  `level` enum('critical','high','medium','info') DEFAULT 'info',
+  `meta` json DEFAULT NULL,
+  `url` varchar(255) DEFAULT NULL,
+  `is_read` tinyint(1) DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `read_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `admin_notification`
+--
+
+INSERT INTO `admin_notification` (`id`, `type`, `title`, `body`, `level`, `meta`, `url`, `is_read`, `created_at`, `read_at`) VALUES
+(1, 'new_order', 'Order #10 placed', '₱14,000.00 — 2 item(s)', 'high', '{\"amount\": 14000, \"order_id\": 10, \"customer_id\": 3}', '/admin/orders.php?id=10', 0, '2025-12-05 06:19:47', NULL),
+(2, 'new_order', 'Order #11 placed', '₱8,064.00 — 1 item(s)', 'high', '{\"amount\": 8064, \"order_id\": 11, \"customer_id\": 2}', '/admin/orders.php?id=11', 0, '2025-12-05 09:44:28', NULL),
+(3, 'refund_request', 'Refund requested for Order #1', 'Test', 'high', '{\"order_id\": 1, \"refund_id\": 8, \"customer_id\": null}', '/admin/orders.php?id=1', 0, '2025-12-05 21:01:12', NULL),
+(4, 'refund_request', 'Refund requested for Order #5', 'No reason provided', 'high', '{\"order_id\": 5, \"refund_id\": 9, \"customer_id\": 2}', '/admin/orders.php?id=5', 0, '2025-12-05 21:02:33', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_notifications`
+--
+
+CREATE TABLE `admin_notifications` (
+  `id` int NOT NULL,
+  `type` varchar(100) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `body` text,
+  `level` enum('critical','high','medium','info') DEFAULT 'info',
+  `meta` json DEFAULT NULL,
+  `url` varchar(255) DEFAULT NULL,
+  `is_read` tinyint(1) DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `read_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `admin_notifications`
+--
+
+INSERT INTO `admin_notifications` (`id`, `type`, `title`, `body`, `level`, `meta`, `url`, `is_read`, `created_at`, `read_at`) VALUES
+(1, 'refund_request', 'Refund requested for Order #6', 'No reason provided', 'high', '{\"order_id\": 6, \"refund_id\": 1, \"customer_id\": 2}', '/admin/orders.php?id=6', 1, '2025-12-01 12:31:20', '2025-12-02 17:57:47'),
+(2, 'refund_request', 'Refund requested for Order #6', 'No reason provided', 'high', '{\"order_id\": 6, \"refund_id\": 2, \"customer_id\": 2}', '/admin/orders.php?id=6', 1, '2025-12-01 12:31:39', '2025-12-02 17:57:47'),
+(3, 'refund_request', 'Refund requested for Order #6', 'No reason provided', 'high', '{\"order_id\": 6, \"refund_id\": 3, \"customer_id\": 2}', '/admin/orders.php?id=6', 1, '2025-12-01 12:31:43', '2025-12-02 17:57:47'),
+(4, 'refund_request', 'Refund requested for Order #5', 'No reason provided', 'high', '{\"order_id\": 5, \"refund_id\": 4, \"customer_id\": 2}', '/admin/orders.php?id=5', 1, '2025-12-01 12:32:40', '2025-12-02 17:57:47'),
+(5, 'refund_request', 'Refund requested for Order #6', 'No reason provided', 'high', '{\"order_id\": 6, \"refund_id\": 5, \"customer_id\": 2}', '/admin/orders.php?id=6', 1, '2025-12-01 12:32:41', '2025-12-02 17:57:47'),
+(6, 'refund_request', 'Refund requested for Order #6', 'No reason provided', 'high', '{\"order_id\": 6, \"refund_id\": 6, \"customer_id\": 2}', '/admin/orders.php?id=6', 1, '2025-12-01 12:35:20', '2025-12-02 17:57:47'),
+(7, 'ai_chat', 'AI provider error: insufficient_quota', 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'high', '{\"message\": \"Hello\", \"provider\": {\"code\": \"insufficient_quota\", \"type\": \"insufficient_quota\", \"param\": null, \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\"}}', NULL, 1, '2025-12-02 15:24:47', '2025-12-02 17:57:47'),
+(8, 'ai_chat', 'AI provider error: insufficient_quota', 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'high', '{\"message\": \"Hello\", \"provider\": {\"code\": \"insufficient_quota\", \"type\": \"insufficient_quota\", \"param\": null, \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\"}}', NULL, 1, '2025-12-02 15:26:07', '2025-12-02 17:57:47'),
+(9, 'ai_chat', 'AI provider error: insufficient_quota', 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'high', '{\"message\": \"Hello\", \"provider\": {\"code\": \"insufficient_quota\", \"type\": \"insufficient_quota\", \"param\": null, \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\"}}', NULL, 1, '2025-12-02 15:26:54', '2025-12-02 17:57:47'),
+(10, 'ai_chat', 'AI provider error: insufficient_quota', 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'high', '{\"message\": \"shipping time\", \"provider\": {\"code\": \"insufficient_quota\", \"type\": \"insufficient_quota\", \"param\": null, \"message\": \"You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.\"}}', NULL, 1, '2025-12-02 15:27:42', '2025-12-02 17:57:47'),
+(11, 'new_order', 'Order #10 placed', '₱14,000.00 — 2 item(s)', 'high', '{\"amount\": 14000, \"order_id\": 10, \"customer_id\": 3}', '/admin/orders.php?id=10', 0, '2025-12-05 06:19:47', NULL),
+(12, 'new_order', 'Order #11 placed', '₱8,064.00 — 1 item(s)', 'high', '{\"amount\": 8064, \"order_id\": 11, \"customer_id\": 2}', '/admin/orders.php?id=11', 0, '2025-12-05 09:44:28', NULL),
+(13, 'refund_request', 'Refund requested for Order #1', 'Test', 'high', '{\"order_id\": 1, \"refund_id\": 8, \"customer_id\": null}', '/admin/orders.php?id=1', 0, '2025-12-05 21:01:12', NULL),
+(14, 'refund_request', 'Refund requested for Order #5', 'No reason provided', 'high', '{\"order_id\": 5, \"refund_id\": 9, \"customer_id\": 2}', '/admin/orders.php?id=5', 0, '2025-12-05 21:02:33', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_settings`
+--
+
+CREATE TABLE `admin_settings` (
+  `id` int NOT NULL,
+  `admin_id` int NOT NULL,
+  `setting_key` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `setting_value` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `admin_settings`
+--
+
+INSERT INTO `admin_settings` (`id`, `admin_id`, `setting_key`, `setting_value`, `created_at`, `updated_at`) VALUES
+(1, 1, 'theme', 'light', '2025-12-03 12:50:09', '2025-12-05 15:09:10'),
+(2, 1, 'accent_color', '#00ff4c', '2025-12-03 12:50:09', '2025-12-03 13:30:02'),
+(3, 1, 'sidebar_collapsed', 'false', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(4, 1, 'notifications_enabled', 'true', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(5, 1, 'email_notifications', 'true', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(6, 1, 'sound_notifications', 'false', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(7, 1, 'store_name', 'ShoeTakels', '2025-12-03 12:50:09', '2025-12-05 05:20:33'),
+(8, 1, 'store_email', 'admin@shoetakels.com', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(9, 1, 'store_phone', '+63 912 345 6789', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(10, 1, 'store_address', 'Manila, Philippines', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(11, 1, 'currency', 'PHP', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(12, 1, 'currency_symbol', '₱', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(13, 1, 'items_per_page', '10', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(14, 1, 'low_stock_threshold', '10', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(15, 1, 'auto_confirm_orders', 'false', '2025-12-03 12:50:09', '2025-12-03 12:50:09'),
+(16, 1, 'maintenance_mode', 'false', '2025-12-03 12:50:09', '2025-12-05 06:08:44'),
+(33, 1, 'customer_theme', 'dark', '2025-12-03 13:00:26', '2025-12-05 10:53:11'),
+(34, 1, 'customer_primary_color', '#ea580c', '2025-12-03 13:00:26', '2025-12-05 10:53:23'),
+(35, 1, 'hero_title', 'Step Into Style and Comfort', '2025-12-03 13:00:26', '2025-12-04 04:14:26'),
+(36, 1, 'hero_subtitle', 'Discover our exclusive collection of premium footwear designed for every occasion. From athletic performance to everyday elegance, find your perfect pair.', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(37, 1, 'footer_about', 'Premium footwear for every occasion. Quality meets style in every step you take.', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(38, 1, 'social_facebook', 'https://facebook.com', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(39, 1, 'social_instagram', 'https://instagram.com', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(40, 1, 'social_twitter', 'https://twitter.com', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(41, 1, 'social_tiktok', 'https://tiktok.com', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(42, 1, 'show_newsletter', 'true', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(43, 1, 'announcement_bar', '', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(44, 1, 'announcement_enabled', 'false', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(45, 1, 'free_shipping_min', '100', '2025-12-03 13:00:26', '2025-12-05 06:07:21'),
+(46, 1, 'show_brands_menu', 'true', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(47, 1, 'show_sale_badge', 'true', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(48, 1, 'contact_hours', 'Mon-Fri: 9AM - 6PM', '2025-12-03 13:00:26', '2025-12-03 13:00:26'),
+(803, 1, 'customer_font', 'Poppins', '2025-12-03 13:14:27', '2025-12-04 15:51:05'),
+(1034, 1, 'customer_secondary_color', '#f97316', '2025-12-03 13:27:42', '2025-12-05 10:53:23'),
+(1035, 1, 'customer_accent_color', '#fb923c', '2025-12-03 13:27:42', '2025-12-05 10:53:23');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `brand`
 --
 
@@ -81,12 +205,46 @@ CREATE TABLE `cart` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `cart`
+-- Table structure for table `chat_logs`
 --
 
-INSERT INTO `cart` (`cart_id`, `customer_id`, `variant_id`, `quantity`, `added_at`, `updated_at`) VALUES
-(18, 2, 10, 1, '2025-11-29 15:19:51', '2025-11-29 15:19:51');
+CREATE TABLE `chat_logs` (
+  `id` int NOT NULL,
+  `session_id` varchar(128) DEFAULT NULL,
+  `customer_id` int DEFAULT NULL,
+  `role` enum('user','assistant','system') DEFAULT 'user',
+  `message` text,
+  `meta` json DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `chat_logs`
+--
+
+INSERT INTO `chat_logs` (`id`, `session_id`, `customer_id`, `role`, `message`, `meta`, `created_at`) VALUES
+(1, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'user', 'hello', NULL, '2025-12-02 13:07:55'),
+(2, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'assistant', 'Hi — chat is enabled but the AI provider key is not configured on the server.\n\nYou can still: check your orders by visiting your Orders page, or file a refund here: request_refund.php', NULL, '2025-12-02 13:07:56'),
+(3, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'user', 'hello', NULL, '2025-12-02 13:08:28'),
+(4, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'assistant', 'Hi — chat is enabled but the AI provider key is not configured on the server.\n\nYou can still: check your orders by visiting your Orders page, or file a refund here: request_refund.php', NULL, '2025-12-02 13:08:28'),
+(5, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'user', 'what product is available?', NULL, '2025-12-02 13:10:16'),
+(6, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'assistant', 'Hi — chat is enabled but the AI provider key is not configured on the server.\n\nYou can still: check your orders by visiting your Orders page, or file a refund here: request_refund.php', NULL, '2025-12-02 13:10:16'),
+(7, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'user', 'Hello', NULL, '2025-12-02 13:18:39'),
+(8, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'user', 'Hello', NULL, '2025-12-02 13:19:50'),
+(9, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'user', 'hello', NULL, '2025-12-02 13:22:56'),
+(10, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'user', 'heelo', NULL, '2025-12-02 13:24:06'),
+(11, 'd57077i1oliqnvk60pfurd5v7p', NULL, 'user', 'heello', NULL, '2025-12-02 13:24:10'),
+(12, '7e37bp241l7vek5sd4dm8g9v60', NULL, 'user', 'Hello', NULL, '2025-12-02 13:33:06'),
+(13, '7e37bp241l7vek5sd4dm8g9v60', NULL, 'user', 'HELLO', NULL, '2025-12-02 13:37:36'),
+(14, '7e37bp241l7vek5sd4dm8g9v60', NULL, 'user', 'Hello', NULL, '2025-12-02 13:40:13'),
+(15, '7e37bp241l7vek5sd4dm8g9v60', NULL, 'user', 'Hello', NULL, '2025-12-02 13:41:04'),
+(16, '7e37bp241l7vek5sd4dm8g9v60', NULL, 'user', 'Hello', NULL, '2025-12-02 13:41:29'),
+(17, '7e37bp241l7vek5sd4dm8g9v60', NULL, 'user', 'Hello', NULL, '2025-12-02 13:44:19'),
+(18, '7e37bp241l7vek5sd4dm8g9v60', NULL, 'user', 'Hello', NULL, '2025-12-02 13:45:43'),
+(19, '7e37bp241l7vek5sd4dm8g9v60', NULL, 'assistant', 'Hi — chat is enabled but the AI provider key is not configured on the server.\n\nYou can still: check your orders by visiting your Orders page, or file a refund here: request_refund.php', NULL, '2025-12-02 13:45:43');
 
 -- --------------------------------------------------------
 
@@ -133,7 +291,8 @@ CREATE TABLE `customer` (
 
 INSERT INTO `customer` (`customer_id`, `name`, `email`, `phone`, `address`, `password`, `created_at`) VALUES
 (1, 'Glend Allyzza Loresco', 'glend143@gmail.com', '09122354762', '13 Barangay St. BRGY. Sitio, Di Mahanap City, Biringan', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', '2025-11-14 15:12:45'),
-(2, 'Nick Vincent Delos Santos Agbuya', '23sc4114_ms@psu.edu.ph', '09122354762', '13 Balon Kalds Turac San Carlos City Pangasinan', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', '2025-11-14 15:28:42');
+(2, 'Nick Vincent Delos Santos Agbuya', '23sc4114_ms@psu.edu.ph', '09122354762', 'Basista , PANGASINAN', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', '2025-11-14 15:28:42'),
+(3, 'Maricar Garcia', '23sc4178_ms@psu.edu.ph', NULL, 'Brgy. Tamayo, SCCP.', '$2y$10$1fiiDKpHbpXVNQjmJZI1fO0jSo0Yc.3iSX7LpqmFOhtVRLoZFQeO6', '2025-12-05 06:12:21');
 
 -- --------------------------------------------------------
 
@@ -143,9 +302,9 @@ INSERT INTO `customer` (`customer_id`, `name`, `email`, `phone`, `address`, `pas
 
 CREATE TABLE `hero_carousel` (
   `carousel_id` int NOT NULL,
-  `image_url` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `title` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `description` text COLLATE utf8mb4_unicode_ci,
+  `image_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
   `sort_order` int DEFAULT '0',
   `is_active` tinyint(1) DEFAULT '1',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -191,7 +350,7 @@ CREATE TABLE `orders` (
   `rider_id` int DEFAULT NULL,
   `total_amount` decimal(10,2) DEFAULT NULL,
   `payment_method` enum('COD','Card','Gcash') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'COD',
-  `status` enum('pending','confirmed','delivering','completed','cancelled') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT 'pending',
+  `status` enum('pending','confirmed','delivering','completed','cancelled','refund_requested') DEFAULT 'pending',
   `delivery_proof` varchar(255) DEFAULT NULL,
   `order_date` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `delivery_lat` decimal(10,7) DEFAULT NULL,
@@ -208,9 +367,12 @@ CREATE TABLE `orders` (
 INSERT INTO `orders` (`order_id`, `customer_id`, `rider_id`, `total_amount`, `payment_method`, `status`, `delivery_proof`, `order_date`, `delivery_lat`, `delivery_lng`, `payment_meta`, `payment_proof`, `delivery_address`) VALUES
 (4, 2, NULL, 7200.00, 'Gcash', 'pending', NULL, '2025-11-27 14:47:47', NULL, NULL, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_4_1764254867.png', '13 Turac San Carlos City Pangasinan'),
 (5, 2, 2, 7200.00, 'Gcash', 'completed', 'upload\\delivery-proof\\proof_5_1764424292_9ec8486a.png', '2025-11-27 14:48:23', 15.9050560, 120.3676940, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_5_1764254903.png', '13 Turac San Carlos City Pangasinan'),
-(6, 2, 2, 7200.00, 'Gcash', 'completed', 'upload/delivery-proof/proof_6_1764428046_b2a1ad80.png', '2025-11-29 14:04:36', NULL, NULL, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_4_1764254867.png', '13 Turac San Carlos City Pangasinan'),
+(6, 2, 1, 7200.00, 'Gcash', 'confirmed', 'upload/delivery-proof/proof_6_1764428046_b2a1ad80.png', '2025-11-29 14:04:36', NULL, NULL, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_4_1764254867.png', '13 Turac San Carlos City Pangasinan'),
 (7, 2, NULL, 1000.00, 'Gcash', 'pending', NULL, '2025-11-29 14:13:18', NULL, NULL, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_7_1764425598.png', '13 Turac San Carlos City Pangasinan'),
-(8, 2, 2, 6800.00, 'Gcash', 'delivering', NULL, '2025-11-29 15:19:24', 15.9050170, 120.3677730, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_8_1764429564.png', '13 Turac San Carlos City Pangasinan');
+(8, 2, NULL, 6800.00, 'Gcash', 'pending', NULL, '2025-11-29 15:19:24', 15.9050170, 120.3677730, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_8_1764429564.png', '13 Turac San Carlos City Pangasinan'),
+(9, 2, 2, 6800.00, 'Gcash', 'refund_requested', 'upload/delivery-proof/proof_9_1764969890_e551d799.png', '2025-12-01 04:36:17', 15.8533030, 120.4029980, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"639122354762\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_9_1764563777.png', 'Basista , PANGASINAN'),
+(10, 3, NULL, 14000.00, 'Gcash', 'pending', NULL, '2025-12-05 06:19:47', NULL, NULL, '{\"payment\":\"gcash\",\"gcash_number\":\"0938736262\",\"gcash_ref\":\"\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_10_1764915587.png', 'Brgy. Tamayo, SCCP.'),
+(11, 2, NULL, 8064.00, 'Gcash', 'pending', NULL, '2025-12-05 09:44:28', NULL, NULL, '{\"payment\":\"gcash\",\"gcash_number\":\"639122354762\",\"gcash_ref\":\"\",\"bank_name\":\"\",\"bank_account_name\":\"\",\"bank_account_number\":\"\"}', 'upload/payment-proof/proof_11_1764927868.png', 'Basista , PANGASINAN');
 
 -- --------------------------------------------------------
 
@@ -236,7 +398,11 @@ INSERT INTO `order_items` (`id`, `order_id`, `variant_id`, `product_id`, `price`
 (3, 5, 8, 7, 7200.00, 1),
 (4, 6, 8, 7, 7200.00, 1),
 (5, 7, 1, 1, 1000.00, 1),
-(6, 8, 10, 8, 6800.00, 1);
+(6, 8, 10, 8, 6800.00, 1),
+(7, 9, 10, 8, 6800.00, 1),
+(8, 10, 8, 7, 7200.00, 1),
+(9, 10, 11, 8, 6800.00, 1),
+(10, 11, 8, 7, 7200.00, 1);
 
 -- --------------------------------------------------------
 
@@ -258,7 +424,6 @@ CREATE TABLE `product` (
 --
 
 INSERT INTO `product` (`product_id`, `brand_id`, `name`, `category`, `product_badge`, `created_at`) VALUES
-(1, 1, 'NIKE P600', 'Male', 'Hot', '2025-11-14 08:57:04'),
 (2, 1, 'NIKE DUNK LOW RETRO', 'Male', '10%', '2025-11-14 08:59:23'),
 (3, 1, 'NIKE ZOOM VOMERO 5', 'Male', '10%', '2025-11-14 09:15:59'),
 (4, 1, 'NIKE CORTEZ LEATHER', 'Male', '20%', '2025-11-14 12:38:17'),
@@ -300,8 +465,6 @@ INSERT INTO `product_color_image` (`color_image_id`, `product_id`, `color_id`, `
 (12, 7, 4, 'upload\\product-image\\photo_2025-11-19_21-04-49 (2).jpg', 1),
 (13, 7, 4, 'upload\\product-image\\photo_2025-11-19_21-04-49.jpg', 2),
 (14, 7, 4, 'upload\\product-image\\photo_2025-11-19_21-04-49 (5).jpg', 3),
-(15, 6, 4, 'upload\\product-image\\photo_2025-11-19_21-04-49 (4).jpg', 4),
-(17, 6, 4, 'upload\\product-image\\photo_2025-11-19_21-04-49 (5).jpg', 5),
 (18, 6, 3, 'upload\\product-image\\photo_2025-11-19_21-29-51 (2).jpg', 2),
 (19, 6, 3, 'upload\\product-image\\photo_2025-11-19_21-29-51 (3).jpg', 3),
 (20, 6, 2, 'upload\\product-image\\photo_2025-11-19_20-57-22 (3).jpg', 1),
@@ -322,7 +485,22 @@ INSERT INTO `product_color_image` (`color_image_id`, `product_id`, `color_id`, `
 (35, 8, 6, 'upload\\product-image\\photo_2025-11-19_21-38-11 (6).jpg', 2),
 (36, 8, 6, 'upload\\product-image\\photo_2025-11-19_21-38-11 (7).jpg', 3),
 (37, 8, 6, 'upload\\product-image\\photo_2025-11-19_21-38-12 (2).jpg', 4),
-(38, 8, 6, 'upload\\product-image\\photo_2025-11-19_21-38-12 (3).jpg', 5);
+(38, 8, 6, 'upload\\product-image\\photo_2025-11-19_21-38-12 (3).jpg', 5),
+(45, 5, 6, 'upload/product-image/1764948597_2bf1d6fa_alleyoop.jpg', 1),
+(46, 5, 6, 'upload/product-image/1764948625_b3fa6580_photo_2025-11-08_23-27-26.jpg', 4),
+(47, 5, 6, 'upload/product-image/1764948630_71d1fc5c_photo_2025-11-08_23-27-26__4_.jpg', 5),
+(48, 5, 6, 'upload/product-image/1764948634_ac72b7ec_photo_2025-11-08_23-27-26__3_.jpg', 6),
+(49, 5, 6, 'upload/product-image/1764948637_6dc57cd9_photo_2025-11-08_23-27-26__2_.jpg', 7),
+(50, 4, 6, 'upload/product-image/1764948860_09648cc4_cortez1.jpg', 1),
+(51, 4, 6, 'upload/product-image/1764948934_32a95de1_cortez2.jpg', 2),
+(52, 4, 6, 'upload/product-image/1764948937_6acaf4d3_cortez3.jpg', 3),
+(53, 4, 6, 'upload/product-image/1764948942_5a57cc26_cortez4.jpg', 4),
+(54, 4, 6, 'upload/product-image/1764948944_f09a26b0_cortez5.jpg', 5),
+(55, 3, 6, 'upload/product-image/1764949153_a7bdf85a_zoom1.jpg', 1),
+(56, 3, 6, 'upload/product-image/1764949153_a06eb4b3_zoom2.jpg', 2),
+(57, 3, 6, 'upload/product-image/1764949153_550494d4_zoom3.jpg', 3),
+(58, 3, 6, 'upload/product-image/1764949153_216e11ec_zoom4.jpg', 4),
+(59, 3, 6, 'upload/product-image/1764949153_0acbb59d_zoom5.jpg', 5);
 
 -- --------------------------------------------------------
 
@@ -345,9 +523,6 @@ CREATE TABLE `product_variant` (
 --
 
 INSERT INTO `product_variant` (`variant_id`, `product_id`, `color_id`, `size_id`, `stock`, `price`, `image_url`) VALUES
-(1, 1, 1, 1, 10, 1000.00, NULL),
-(2, 4, 1, 1, 10, 600.00, NULL),
-(3, 4, 2, 1, 13, 699.00, NULL),
 (4, 2, 1, 1, 1, 600.00, NULL),
 (5, 2, 2, 1, 10, 6020.00, NULL),
 (6, 2, 2, 2, 1, 600.00, NULL),
@@ -355,7 +530,37 @@ INSERT INTO `product_variant` (`variant_id`, `product_id`, `color_id`, `size_id`
 (8, 7, 4, 3, 10, 7200.00, NULL),
 (9, 6, 2, 1, 2, 7200.00, NULL),
 (10, 8, 5, 4, 2, 6800.00, ''),
-(11, 8, 6, 5, 1, 6800.00, NULL);
+(11, 8, 6, 5, 1, 6800.00, NULL),
+(12, 5, 6, 1, 10, 6299.00, NULL),
+(13, 4, 6, 1, 10, 699.00, NULL),
+(14, 3, 6, 1, 0, 0.00, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `refund_requests`
+--
+
+CREATE TABLE `refund_requests` (
+  `id` int NOT NULL,
+  `order_id` int NOT NULL,
+  `customer_id` int DEFAULT NULL,
+  `reason` text,
+  `status` enum('requested','processing','pickup_scheduled','picked_up','resolved','rejected') DEFAULT 'requested',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `rider_pickup_id` int DEFAULT NULL,
+  `pickup_date` datetime DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `refund_requests`
+--
+
+INSERT INTO `refund_requests` (`id`, `order_id`, `customer_id`, `reason`, `status`, `created_at`, `rider_pickup_id`, `pickup_date`, `updated_at`) VALUES
+(8, 1, NULL, 'Test', 'requested', '2025-12-05 21:01:12', NULL, NULL, '2025-12-05 21:01:12'),
+(9, 5, 2, 'No reason provided', 'resolved', '2025-12-05 21:02:33', NULL, NULL, '2025-12-05 21:10:43'),
+(10, 9, 2, 'Wrong  Size', 'processing', '2025-12-06 01:45:44', NULL, NULL, '2025-12-06 01:57:08');
 
 -- --------------------------------------------------------
 
@@ -380,8 +585,8 @@ CREATE TABLE `rider` (
 --
 
 INSERT INTO `rider` (`rider_id`, `name`, `email`, `phone`, `password`, `status`, `created_at`, `current_lat`, `current_lng`) VALUES
-(1, 'Rider In Tandem', 'rider@gmail.com', '09122354762', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', 'inactive', '2025-11-25 13:55:40', NULL, NULL),
-(2, 'Vincent Agbuya', 'vince@gmail.com', '09122354762', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', 'busy', '2025-11-25 16:28:34', 15.90481200, 120.36786650);
+(1, 'Rider In Tandem', 'rider@gmail.com', '09122354762', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', 'busy', '2025-11-25 13:55:40', NULL, NULL),
+(2, 'Vincent Agbuya', 'vince@gmail.com', '09122354762', '$2y$10$g35fTCZzZT4YEWuO8hNCteI8iLt1jZxWGUhOB9Fn/zSLk5Jp17MHO', 'available', '2025-11-25 16:28:34', 15.87770600, 120.36630200);
 
 -- --------------------------------------------------------
 
@@ -415,8 +620,36 @@ CREATE TABLE `rider_location_history` (
 -- Dumping data for table `rider_location_history`
 --
 
-
-
+INSERT INTO `rider_location_history` (`id`, `rider_id`, `latitude`, `longitude`, `heading`, `accuracy`, `recorded_at`) VALUES
+(844, 2, 15.9337069, 120.3400649, 0.00, 57, '2025-12-01 04:13:36'),
+(845, 2, 15.9337069, 120.3400649, 0.00, 57, '2025-12-01 04:13:41'),
+(846, 2, 15.9337111, 120.3400483, 0.00, 55, '2025-12-01 04:13:46'),
+(847, 2, 15.9337111, 120.3400483, 0.00, 55, '2025-12-01 04:13:51'),
+(848, 2, 15.9337151, 120.3400396, 0.00, 52, '2025-12-01 04:13:57'),
+(851, 2, 15.9045936, 120.3679935, 0.00, 20, '2025-12-03 12:25:48'),
+(852, 2, 15.9045936, 120.3679935, 0.00, 20, '2025-12-03 12:25:50'),
+(853, 2, 15.9045936, 120.3679935, 0.00, 20, '2025-12-03 12:25:55'),
+(854, 2, 15.9045936, 120.3679935, 0.00, 20, '2025-12-03 12:26:00'),
+(855, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:46:29'),
+(856, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:46:35'),
+(857, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:46:43'),
+(858, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:46:45'),
+(859, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:46:52'),
+(860, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:46:55'),
+(861, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:47:02'),
+(862, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:47:05'),
+(863, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:47:12'),
+(864, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:47:15'),
+(865, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:47:20'),
+(866, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:47:27'),
+(867, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:50:20'),
+(868, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 08:54:39'),
+(869, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 09:19:54'),
+(870, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 09:20:49'),
+(871, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 09:21:02'),
+(872, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 09:22:39'),
+(873, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 09:22:53'),
+(874, 2, 15.8777060, 120.3663020, 0.00, 212, '2025-12-05 14:07:31');
 
 -- --------------------------------------------------------
 
@@ -432,7 +665,7 @@ CREATE TABLE `rider_rating` (
   `rating` tinyint NOT NULL,
   `review` text,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `rider_rating`
@@ -530,6 +763,26 @@ ALTER TABLE `admin`
   ADD UNIQUE KEY `email` (`email`);
 
 --
+-- Indexes for table `admin_notification`
+--
+ALTER TABLE `admin_notification`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `admin_notifications`
+--
+ALTER TABLE `admin_notifications`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `admin_settings`
+--
+ALTER TABLE `admin_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_admin_setting` (`admin_id`,`setting_key`),
+  ADD KEY `idx_admin_id` (`admin_id`);
+
+--
 -- Indexes for table `brand`
 --
 ALTER TABLE `brand`
@@ -544,6 +797,12 @@ ALTER TABLE `cart`
   ADD UNIQUE KEY `unique_user_variant` (`customer_id`,`variant_id`),
   ADD KEY `idx_customer_id` (`customer_id`),
   ADD KEY `idx_variant_id` (`variant_id`);
+
+--
+-- Indexes for table `chat_logs`
+--
+ALTER TABLE `chat_logs`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `color`
@@ -615,6 +874,12 @@ ALTER TABLE `product_variant`
   ADD KEY `size_id` (`size_id`);
 
 --
+-- Indexes for table `refund_requests`
+--
+ALTER TABLE `refund_requests`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `rider`
 --
 ALTER TABLE `rider`
@@ -669,6 +934,24 @@ ALTER TABLE `admin`
   MODIFY `admin_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
+-- AUTO_INCREMENT for table `admin_notification`
+--
+ALTER TABLE `admin_notification`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `admin_notifications`
+--
+ALTER TABLE `admin_notifications`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+
+--
+-- AUTO_INCREMENT for table `admin_settings`
+--
+ALTER TABLE `admin_settings`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4096;
+
+--
 -- AUTO_INCREMENT for table `brand`
 --
 ALTER TABLE `brand`
@@ -678,7 +961,13 @@ ALTER TABLE `brand`
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `cart_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `cart_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+
+--
+-- AUTO_INCREMENT for table `chat_logs`
+--
+ALTER TABLE `chat_logs`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `color`
@@ -690,7 +979,7 @@ ALTER TABLE `color`
 -- AUTO_INCREMENT for table `customer`
 --
 ALTER TABLE `customer`
-  MODIFY `customer_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `customer_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `hero_carousel`
@@ -708,13 +997,13 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `order_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `order_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `product`
@@ -726,13 +1015,19 @@ ALTER TABLE `product`
 -- AUTO_INCREMENT for table `product_color_image`
 --
 ALTER TABLE `product_color_image`
-  MODIFY `color_image_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `color_image_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
 
 --
 -- AUTO_INCREMENT for table `product_variant`
 --
 ALTER TABLE `product_variant`
-  MODIFY `variant_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `variant_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+
+--
+-- AUTO_INCREMENT for table `refund_requests`
+--
+ALTER TABLE `refund_requests`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `rider`
@@ -744,13 +1039,13 @@ ALTER TABLE `rider`
 -- AUTO_INCREMENT for table `rider_location_history`
 --
 ALTER TABLE `rider_location_history`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=844;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=875;
 
 --
 -- AUTO_INCREMENT for table `rider_rating`
 --
 ALTER TABLE `rider_rating`
-  MODIFY `rating_id` int NOT NULL AUTO_INCREMENT;
+  MODIFY `rating_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `size`

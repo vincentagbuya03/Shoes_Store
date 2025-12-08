@@ -33,10 +33,10 @@ if (isset($_SESSION['customer_id'])) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="asset/style/index.css">
     <link rel="stylesheet" href="asset/style/product.css">
     <link rel="stylesheet" href="asset/style/carousel.css">
     <link rel="stylesheet" href="asset/style/beautiful-ui.css">
+    <link rel="stylesheet" href="asset/style/animations.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
     <script src="asset/script/script.js" defer></script>
     <?php echo getStoreThemeCSS(); ?>
@@ -79,7 +79,7 @@ if (isset($_SESSION['customer_id'])) {
                     <div class="brand-grid">
                         <?php
                             $brand_query = "SELECT brand_id, brand_name, brand_logo 
-                                            FROM Brand 
+                                            FROM brand 
                                             ORDER BY brand_name ASC";
                             $brand_result = $conn->query($brand_query);
 
@@ -145,7 +145,7 @@ if (isset($_SESSION['customer_id'])) {
                     <div class="dropdown-divider"></div>
                     <a href="user-profile.php" class="dropdown-item"><i class="fas fa-user-cog"></i> My Profile</a>
                     <a href="orders.php" class="dropdown-item"><i class="fas fa-box"></i> My Orders</a>
-                    <a href="#" class="dropdown-item"><i class="fas fa-heart"></i> Wishlist</a>
+                    <a href="#" class="dropdown-item" id="wishlist-link" onclick="openWishlistModal(event)"><i class="fas fa-heart"></i> Wishlist</a>
                     <div class="dropdown-divider"></div>
                     <a href="logout.php" class="dropdown-item logout-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
@@ -242,8 +242,11 @@ if (isset($_SESSION['customer_id'])) {
     </section>
     
     <section class="new-arrivals" id="new-arrivals">
-        <h2 class="section-title">New Arrivals</h2>
-        <p class="section-subtitle">Fresh styles just dropped</p>
+        <div class="section-header-modern">
+            <span class="section-badge"><i class="fas fa-bolt"></i> Just In</span>
+            <h2 class="section-title section-title-modern">New Arrivals</h2>
+            <p class="section-subtitle section-subtitle-modern">Fresh styles just dropped</p>
+        </div>
         
         <div class="products-grid">
             <?php
@@ -252,19 +255,17 @@ if (isset($_SESSION['customer_id'])) {
                         s.product_id, 
                         s.name, 
                         b.brand_name, 
-                        s.Category AS CategoryName, 
-                        pci.image_url,
-                        c.color_name AS primary_color,
+                        s.Category AS CategoryName,
                         (
-                            SELECT MIN(v.price) FROM product_variant v WHERE v.product_id = s.product_id AND v.color_id = pci.color_id
-                        ) AS min_price,
-                        (
-                            SELECT MAX(v.price) FROM product_variant v WHERE v.product_id = s.product_id AND v.color_id = pci.color_id
-                        ) AS max_price
-                    FROM Product s
-                    LEFT JOIN Brand b ON s.brand_id = b.brand_id
-                    LEFT JOIN product_color_image pci ON s.product_id = pci.product_id AND pci.sort_order = 1
-                    LEFT JOIN color c ON pci.color_id = c.color_id
+                            SELECT pci2.image_url
+                            FROM product_color_image pci2
+                            WHERE pci2.product_id = s.product_id
+                            ORDER BY pci2.sort_order ASC
+                            LIMIT 1
+                        ) AS image_url,
+                        (SELECT MIN(v.price) FROM product_variant v WHERE v.product_id = s.product_id) AS min_price
+                    FROM product s
+                    LEFT JOIN brand b ON s.brand_id = b.brand_id
                     ORDER BY s.created_at DESC
                     LIMIT 4
                 ";
@@ -278,48 +279,32 @@ if (isset($_SESSION['customer_id'])) {
                         $name = htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8');
                         $brand = htmlspecialchars($product['brand_name'], ENT_QUOTES, 'UTF-8');
                         $pid = (int)$product['product_id'];
-                        $raw_primary_color = $product['primary_color'] ?? '';
-                        $primary_color = htmlspecialchars($raw_primary_color !== '' ? $raw_primary_color : 'N/A', ENT_QUOTES, 'UTF-8');
-                        $min_price = $product['min_price'] !== null ? number_format((float)$product['min_price'], 2) : 'N/A';
-                        $max_price = $product['max_price'] !== null ? number_format((float)$product['max_price'], 2) : 'N/A';
-                        $price_display = ($min_price === $max_price) ? "₱$min_price" : "₱$min_price - ₱$max_price";
-
-                        // Fetch all available colors for this product
-                        $color_sql = "SELECT DISTINCT c.color_name FROM product_variant v LEFT JOIN color c ON v.color_id = c.color_id WHERE v.product_id = $pid ORDER BY c.color_name ASC";
-                        $color_res = $conn->query($color_sql);
-                        $color_swatches = '';
-                        if ($color_res && $color_res->num_rows > 0) {
-                            $color_swatches .= '<div class="product-swatches">';
-                            while ($color_row = $color_res->fetch_assoc()) {
-                                $color_name = $color_row['color_name'];
-                                $color_param = urlencode($color_name);
-                                $color_label = htmlspecialchars($color_name, ENT_QUOTES, 'UTF-8');
-                                $color_style = "background-color: $color_label;";
-                                $color_swatches .= "<a href='product-detail.php?id={$pid}&color=$color_param' class='color-swatch' title='$color_label' style='$color_style'></a> ";
-                            }
-                            $color_swatches .= '</div>';
-                        }
-
+                        $price = $product['min_price'] !== null ? '₱' . number_format((float)$product['min_price'], 2) : '';
+                        $priceJs = htmlspecialchars($price, ENT_QUOTES, 'UTF-8');
                         echo "
                         <div class='product-card'>
-                            <div class='product-image'>
-                                <a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "' title='View $name'>
-                                    <img src='$img' alt='$name' class='product-thumb' loading='lazy'>
+                            <div class='product-image-container'>
+                                <span class='product-badge new-badge'>New</span>
+                                <a href='product-detail.php?id={$pid}' title='View $name'>
+                                    <img src='$img' alt='$name' class='product-image' loading='lazy'>
                                 </a>
+                                <div class='product-overlay'></div>
+                                <div class='product-actions'>
+                                    <a href='product-detail.php?id={$pid}' class='action-btn' title='Quick View'><i class='fas fa-eye'></i></a>
+                                    <button class='action-btn wishlist-btn' title='Add to Wishlist' onclick=\"addToWishlist({$pid}, '{$name}', '{$brand}', '{$priceJs}', '{$img}')\"><i class='fas fa-heart'></i></button>
+                                </div>
                             </div>
-                            <h3 class='product-name'><a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "'>$name</a></h3>
-                            <div class='product-brand'>$brand</div>
-                            <div class='product-color'>$primary_color</div>
-                            $color_swatches
-                            <div class='product-price'>$price_display</div>
-                            <!-- Add data-product-id to button for AJAX handling -->
-                            <button class='btn-primary add-to-cart-btn' data-product-id='$pid' style='width: 100%;'>Add to Cart</button>
+                            <div class='product-info'>
+                                <div class='product-brand'>$brand</div>
+                                <h3 class='product-name'><a href='product-detail.php?id={$pid}'>$name</a></h3>
+                                <div class='product-price'>$price</div>
+                                <button class='btn-primary add-to-cart-btn' data-product-id='$pid'><i class='fas fa-shopping-bag'></i> Add to Cart</button>
+                            </div>
                         </div>
                         ";
                     }
-
                 } else {
-                    echo "<p>No new arrivals available</p>";
+                    echo "<p class='no-products'>No new arrivals available</p>";
                 }
             ?>
         </div>
@@ -341,7 +326,7 @@ if (isset($_SESSION['customer_id'])) {
             <div class="logo-carousel-container" id="logoCarousel">
                 <?php
                     $carousel_brand_query = "SELECT brand_id, brand_name, brand_logo 
-                                             FROM Brand 
+                                             FROM brand 
                                              WHERE brand_logo IS NOT NULL AND brand_logo != ''
                                              ORDER BY brand_name ASC";
                     $carousel_brand_result = $conn->query($carousel_brand_query);
@@ -371,8 +356,11 @@ if (isset($_SESSION['customer_id'])) {
     </section>
 
     <section class="featured" id="shop">
-        <h2 class="section-title">Featured Collection</h2>
-        <p class="section-subtitle">Handpicked styles for the season</p>
+        <div class="section-header-modern">
+            <span class="section-badge"><i class="fas fa-star"></i> Featured</span>
+            <h2 class="section-title section-title-modern">Featured Collection</h2>
+            <p class="section-subtitle section-subtitle-modern">Handpicked styles for the season</p>
+        </div>
         
         <div class="products-grid">
             <?php
@@ -382,18 +370,26 @@ if (isset($_SESSION['customer_id'])) {
                         s.name, 
                         b.brand_name, 
                         s.Category AS CategoryName, 
-                        pci.image_url,
-                        c.color_name AS primary_color,
                         (
-                            SELECT MIN(v.price) FROM product_variant v WHERE v.product_id = s.product_id AND v.color_id = pci.color_id
-                        ) AS min_price,
+                            SELECT pci2.image_url
+                            FROM product_color_image pci2
+                            WHERE pci2.product_id = s.product_id
+                            ORDER BY pci2.sort_order ASC
+                            LIMIT 1
+                        ) AS image_url,
                         (
-                            SELECT MAX(v.price) FROM product_variant v WHERE v.product_id = s.product_id AND v.color_id = pci.color_id
-                        ) AS max_price
-                    FROM Product s
-                    LEFT JOIN Brand b ON s.brand_id = b.brand_id
-                    LEFT JOIN product_color_image pci ON s.product_id = pci.product_id AND pci.sort_order = 1
-                    LEFT JOIN color c ON pci.color_id = c.color_id
+                            SELECT c2.color_name
+                            FROM product_color_image pci3
+                            LEFT JOIN color c2 ON pci3.color_id = c2.color_id
+                            WHERE pci3.product_id = s.product_id
+                            ORDER BY pci3.sort_order ASC
+                            LIMIT 1
+                        ) AS primary_color,
+                        (SELECT MIN(v.price) FROM product_variant v WHERE v.product_id = s.product_id) AS min_price,
+                        (SELECT MAX(v.price) FROM product_variant v WHERE v.product_id = s.product_id) AS max_price
+                    FROM product s
+                    LEFT JOIN brand b ON s.brand_id = b.brand_id
+                    ORDER BY RAND()
                     LIMIT 4
                 ";
                 $result = $conn->query($query);
@@ -406,13 +402,15 @@ if (isset($_SESSION['customer_id'])) {
                         $brand = htmlspecialchars($product['brand_name'], ENT_QUOTES, 'UTF-8');
                         $pid = (int)$product['product_id'];
                         $raw_primary_color = $product['primary_color'] ?? '';
-                        $primary_color = htmlspecialchars($raw_primary_color !== '' ? $raw_primary_color : 'N/A', ENT_QUOTES, 'UTF-8');
-                        $min_price = $product['min_price'] !== null ? number_format((float)$product['min_price'], 2) : 'N/A';
-                        $max_price = $product['max_price'] !== null ? number_format((float)$product['max_price'], 2) : 'N/A';
-                        $price_display = ($min_price === $max_price) ? "₱$min_price" : "₱$min_price - ₱$max_price";
+                        $min_price = $product['min_price'] !== null ? number_format((float)$product['min_price'], 2) : null;
+                        $max_price = $product['max_price'] !== null ? number_format((float)$product['max_price'], 2) : null;
+                        $price_display = '';
+                        if ($min_price !== null) {
+                            $price_display = ($min_price === $max_price) ? "₱$min_price" : "₱$min_price - ₱$max_price";
+                        }
 
                         // Fetch all available colors for this product
-                        $color_sql = "SELECT DISTINCT c.color_name FROM product_variant v LEFT JOIN color c ON v.color_id = c.color_id WHERE v.product_id = $pid ORDER BY c.color_name ASC";
+                        $color_sql = "SELECT DISTINCT c.color_name FROM product_variant v LEFT JOIN color c ON v.color_id = c.color_id WHERE v.product_id = $pid AND c.color_name IS NOT NULL ORDER BY c.color_name ASC LIMIT 5";
                         $color_res = $conn->query($color_sql);
                         $color_swatches = '';
                         if ($color_res && $color_res->num_rows > 0) {
@@ -422,30 +420,36 @@ if (isset($_SESSION['customer_id'])) {
                                 $color_param = urlencode($color_name);
                                 $color_label = htmlspecialchars($color_name, ENT_QUOTES, 'UTF-8');
                                 $color_style = "background-color: $color_label;";
-                                $color_swatches .= "<a href='product-detail.php?id={$pid}&color=$color_param' class='color-swatch' title='$color_label' style='$color_style'></a> ";
+                                $color_swatches .= "<a href='product-detail.php?id={$pid}&color=$color_param' class='color-swatch' title='$color_label' style='$color_style'></a>";
                             }
                             $color_swatches .= '</div>';
                         }
 
                         echo "
                         <div class='product-card'>
-                            <div class='product-image'>
+                            <span class='product-badge featured-badge'><i class='fas fa-star'></i></span>
+                            <div class='product-image-container'>
                                 <a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "' title='View $name'>
-                                    <img src='$img' alt='$name' class='product-thumb' loading='lazy'>
+                                    <img src='$img' alt='$name' class='product-image' loading='lazy'>
                                 </a>
+                                <div class='product-overlay'></div>
+                                <div class='product-actions'>
+                                    <a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "' class='action-btn' title='Quick View'><i class='fas fa-eye'></i></a>
+                                    <button class='action-btn' title='Add to Wishlist'><i class='fas fa-heart'></i></button>
+                                </div>
                             </div>
-                            <h3 class='product-name'><a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "'>$name</a></h3>
-                            <div class='product-brand'>$brand</div>
-                            <div class='product-color'>$primary_color</div>
-                            $color_swatches
-                            <div class='product-price'>$price_display</div>
-                            <!-- Add data-product-id to button for AJAX handling -->
-                            <button class='btn-primary add-to-cart-btn' data-product-id='$pid' style='width: 100%;'>Add to Cart</button>
+                            <div class='product-info'>
+                                <div class='product-brand'>$brand</div>
+                                <h3 class='product-name'><a href='product-detail.php?id={$pid}&color=" . urlencode($raw_primary_color) . "'>$name</a></h3>
+                                $color_swatches
+                                <div class='product-price'>$price_display</div>
+                                <button class='btn-primary add-to-cart-btn' data-product-id='$pid'><i class='fas fa-shopping-bag'></i> Add to Cart</button>
+                            </div>
                         </div>
                         ";
                     }
                 } else {
-                    echo "<p>No featured products available</p>";
+                    echo "<p class='no-products'>No featured products available</p>";
                 }
             // End featured section PHP
             ?>
@@ -782,6 +786,419 @@ if (isset($_SESSION['customer_id'])) {
             wrapper.addEventListener('mouseleave', () => {
                 logoCarousel.style.animationPlayState = 'running';
             });
+        }
+    </script>
+
+    <!-- Wishlist Modal -->
+    <div class="wishlist-modal-overlay" id="wishlist-modal-overlay">
+        <div class="wishlist-modal">
+            <div class="wishlist-modal-header">
+                <div class="wishlist-modal-title">
+                    <i class="fas fa-heart"></i>
+                    <h2>My Wishlist</h2>
+                </div>
+                <button class="wishlist-modal-close" onclick="closeWishlistModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="wishlist-modal-body" id="wishlist-modal-body">
+                <div class="wishlist-empty">
+                    <div class="wishlist-empty-icon">
+                        <i class="fas fa-heart-broken"></i>
+                    </div>
+                    <h3>Your Wishlist is Empty</h3>
+                    <p>Save items you love by clicking the heart icon on any product</p>
+                    <a href="shoes.php" class="wishlist-shop-btn" onclick="closeWishlistModal()">
+                        <i class="fas fa-shopping-bag"></i> Start Shopping
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Wishlist Modal Styles */
+        .wishlist-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .wishlist-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .wishlist-modal {
+            background: var(--store-card-bg, #ffffff);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .wishlist-modal-overlay.active .wishlist-modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .wishlist-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem;
+            background: var(--store-primary, #6366f1);
+            color: #ffffff;
+        }
+
+        .wishlist-modal-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .wishlist-modal-title i {
+            font-size: 1.5rem;
+        }
+
+        .wishlist-modal-title h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .wishlist-modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: #ffffff;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wishlist-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .wishlist-modal-body {
+            padding: 2rem;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        /* Empty Wishlist State */
+        .wishlist-empty {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .wishlist-empty-icon {
+            width: 100px;
+            height: 100px;
+            background: var(--store-primary-light, rgba(99, 102, 241, 0.1));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+        }
+
+        .wishlist-empty-icon i {
+            font-size: 2.5rem;
+            color: var(--store-primary, #6366f1);
+        }
+
+        .wishlist-empty h3 {
+            color: var(--store-text, #1f2937);
+            margin: 0 0 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .wishlist-empty p {
+            color: var(--store-text-secondary, #6b7280);
+            margin: 0 0 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .wishlist-shop-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            background: var(--store-gradient, linear-gradient(135deg, #6366f1, #8b5cf6));
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .wishlist-shop-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        /* Wishlist Items */
+        .wishlist-items {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .wishlist-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--store-bg-secondary, #f8fafc);
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .wishlist-item:hover {
+            background: var(--store-bg, #f1f5f9);
+        }
+
+        .wishlist-item-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .wishlist-item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .wishlist-item-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .wishlist-item-name {
+            font-weight: 600;
+            color: var(--store-text, #1f2937);
+            margin: 0 0 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .wishlist-item-brand {
+            font-size: 0.8rem;
+            color: var(--store-text-secondary, #6b7280);
+            margin: 0 0 0.5rem;
+        }
+
+        .wishlist-item-price {
+            font-weight: 700;
+            color: var(--store-primary, #6366f1);
+            font-size: 1rem;
+        }
+
+        .wishlist-item-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+
+        .wishlist-add-cart-btn {
+            padding: 0.5rem 1rem;
+            background: var(--store-primary, #6366f1);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .wishlist-add-cart-btn:hover {
+            background: var(--store-secondary, #4f46e5);
+        }
+
+        .wishlist-remove-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            color: #ef4444;
+            border: 1px solid #ef4444;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .wishlist-remove-btn:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        @media (max-width: 480px) {
+            .wishlist-modal {
+                width: 95%;
+                margin: 1rem;
+            }
+
+            .wishlist-modal-body {
+                padding: 1.25rem;
+            }
+
+            .wishlist-item {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .wishlist-item-image {
+                width: 100%;
+                height: 150px;
+            }
+
+            .wishlist-item-actions {
+                flex-direction: row;
+                justify-content: center;
+            }
+        }
+    </style>
+
+    <script>
+        // Wishlist Modal Functions
+        function openWishlistModal(event) {
+            if (event) event.preventDefault();
+            const modal = document.getElementById('wishlist-modal-overlay');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            // Close user menu if open
+            const userMenu = document.getElementById('user-menu');
+            if (userMenu) userMenu.classList.remove('active');
+            
+            loadWishlistItems();
+        }
+
+        function closeWishlistModal() {
+            const modal = document.getElementById('wishlist-modal-overlay');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('wishlist-modal-overlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeWishlistModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeWishlistModal();
+            }
+        });
+
+        // Load wishlist items from localStorage
+        function loadWishlistItems() {
+            const wishlistBody = document.getElementById('wishlist-modal-body');
+            const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+
+            if (wishlist.length === 0) {
+                wishlistBody.innerHTML = `
+                    <div class="wishlist-empty">
+                        <div class="wishlist-empty-icon">
+                            <i class="fas fa-heart-broken"></i>
+                        </div>
+                        <h3>Your Wishlist is Empty</h3>
+                        <p>Save items you love by clicking the heart icon on any product</p>
+                        <a href="shoes.php" class="wishlist-shop-btn" onclick="closeWishlistModal()">
+                            <i class="fas fa-shopping-bag"></i> Start Shopping
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            let itemsHtml = '<div class="wishlist-items">';
+            wishlist.forEach((item, index) => {
+                itemsHtml += `
+                    <div class="wishlist-item" data-index="${index}">
+                        <div class="wishlist-item-image">
+                            <img src="${item.image || 'upload/product-image/placeholder.png'}" alt="${item.name}">
+                        </div>
+                        <div class="wishlist-item-info">
+                            <h4 class="wishlist-item-name">${item.name}</h4>
+                            <p class="wishlist-item-brand">${item.brand || ''}</p>
+                            <span class="wishlist-item-price">${item.price || ''}</span>
+                        </div>
+                        <div class="wishlist-item-actions">
+                            <a href="product-detail.php?id=${item.id}" class="wishlist-add-cart-btn" onclick="closeWishlistModal()">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            <button class="wishlist-remove-btn" onclick="removeFromWishlist(${index})">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            itemsHtml += '</div>';
+            wishlistBody.innerHTML = itemsHtml;
+        }
+
+        // Add to wishlist function
+        function addToWishlist(productId, productName, productBrand, productPrice, productImage) {
+            let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+            
+            // Check if already in wishlist
+            const exists = wishlist.some(item => item.id === productId);
+            if (exists) {
+                showToast('Info', 'This item is already in your wishlist', false);
+                return;
+            }
+
+            wishlist.push({
+                id: productId,
+                name: productName,
+                brand: productBrand,
+                price: productPrice,
+                image: productImage
+            });
+
+            localStorage.setItem('wishlist', JSON.stringify(wishlist));
+            showToast('Success', 'Added to wishlist!', false);
+        }
+
+        // Remove from wishlist
+        function removeFromWishlist(index) {
+            let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+            wishlist.splice(index, 1);
+            localStorage.setItem('wishlist', JSON.stringify(wishlist));
+            loadWishlistItems();
+            showToast('Success', 'Removed from wishlist', false);
         }
     </script>
 
