@@ -644,12 +644,14 @@ $chatbot_base = getChatbotBasePath();
                 if (xhr.status === 200) {
                     try {
                         var response = JSON.parse(xhr.responseText);
-                        addBotMessage(response.reply || "I didn't understand that. Can you rephrase?");
+                        addBotMessage(response.reply || getFallbackResponse(userMessage));
                     } catch (e) {
-                        addBotMessage("I'm having trouble processing that. Please try again.");
+                        // JSON parse error - use fallback
+                        addBotMessage(getFallbackResponse(userMessage));
                     }
                 } else {
-                    addBotMessage("I'm having trouble connecting right now. Please try again in a moment.");
+                    // API error - use fallback
+                    addBotMessage(getFallbackResponse(userMessage));
                 }
             }
         };
@@ -660,10 +662,78 @@ $chatbot_base = getChatbotBasePath();
                 elements.send.disabled = false;
                 elements.send.classList.remove('loading');
             }
-            addBotMessage("I'm having trouble connecting right now. Please try again in a moment.");
+            // Network error - use fallback
+            addBotMessage(getFallbackResponse(userMessage));
         };
         var historyToSend = state.messages.slice(-10);
         xhr.send(JSON.stringify({ message: userMessage, history: historyToSend }));
+    }
+
+    function getFallbackResponse(userMessage) {
+        var message = userMessage.toLowerCase();
+        
+        // Greeting responses
+        if (/hello|hi|hey|greetings|what's up|yo/.test(message)) {
+            return "Hey there! 👋 Welcome to ShoeTakels! How can I help you find the perfect shoes today?";
+        }
+        
+        // Help/Support
+        if (/help|support|assist|can you help/.test(message)) {
+            return "Of course! I'm here to help! 😊 I can assist you with:\n• Finding shoes by size, brand, or style\n• Information about our products\n• Shipping and delivery questions\n• Returns and refunds\n• Payment options\n\nWhat would you like to know?";
+        }
+        
+        // Shipping & Delivery
+        if (/ship|deliver|delivery|how long|when will|track|tracking/.test(message)) {
+            return "Great question! 📦 We offer fast shipping options:\n• Standard Delivery: 5-7 business days\n• Express Delivery: 2-3 business days\n• You'll receive a tracking number once your order ships\n\nNeed help tracking your order?";
+        }
+        
+        // Returns & Refunds
+        if (/return|refund|exchange|send back|money back/.test(message)) {
+            return "No problem! 🔄 Here's our return policy:\n• You can return items within 30 days\n• Items must be unworn and in original condition\n• Free return shipping on most items\n• Full refund or exchange available\n\nWould you like to start a return?";
+        }
+        
+        // Sizes & Fit
+        if (/size|fit|how to|measure|what size|fitting/.test(message)) {
+            return "Let me help you find the right fit! 👟\n• We have sizes from 4 to 14\n• Check our size guide for accurate measurements\n• Men's, Women's, and Kids' sizes available\n• Not sure about your size? I can help!\n\nWhat size range are you looking for?";
+        }
+        
+        // Brands
+        if (/brand|nike|adidas|puma|converse|timberland|vans|other brands/.test(message)) {
+            return "Awesome! 🌟 We carry a great selection of brands:\n• Nike\n• Adidas\n• Puma\n• Converse\n• Timberland\n• Vans\n• And many more!\n\nWhich brand interests you?";
+        }
+        
+        // Sales & Discounts
+        if (/sale|discount|coupon|promo|deal|offer|price/.test(message)) {
+            return "Great timing! 🎉 We always have amazing deals:\n• Check our SALE section for up to 50% off\n• Subscribe to our newsletter for exclusive discounts\n• Seasonal promotions throughout the year\n• Flash sales on weekends\n\nWant to see what's on sale right now?";
+        }
+        
+        // Payment
+        if (/payment|pay|credit card|debit|method|gcash|paypal|how to pay/.test(message)) {
+            return "We accept multiple payment methods! 💳\n• Credit Cards (Visa, Mastercard)\n• Debit Cards\n• GCash & other mobile wallets\n• Bank transfers\n• Payment plans available\n\nWhich payment method do you prefer?";
+        }
+        
+        // Products/Categories
+        if (/shoe|sneaker|boot|casual|sport|athletic|formal|women|men|kids|categories/.test(message)) {
+            return "Perfect! 👟 We have a wide variety of shoes:\n• Sneakers & Athletic shoes\n• Casual shoes\n• Formal shoes\n• Boots\n• Men's, Women's & Kids' styles\n• All the latest trends!\n\nWhat type of shoe are you looking for?";
+        }
+        
+        // New/Latest
+        if (/new|latest|trending|popular|bestseller|top rated|best seller/.test(message)) {
+            return "Excellent choice! ✨ Check out our hottest items:\n• New arrivals this week\n• Best sellers\n• Customer favorites\n• Trending styles\n• Limited edition items\n\nWould you like to see our newest collection?";
+        }
+        
+        // Delivery locations
+        if (/where|ship to|deliver to|country|location|available/.test(message)) {
+            return "We ship to many locations! 🌍 We deliver to:\n• Local areas\n• Nationwide\n• Select international addresses\n• Metro Manila with express option\n\nWhere are you located?";
+        }
+        
+        // Generic responses
+        if (message.length < 5) {
+            return "I'm not quite sure what you mean. Could you tell me more about what you're looking for? 😊";
+        }
+        
+        // Default fallback
+        return "Thanks for your question! 😊 That's interesting. I'm still learning, but our team can definitely help you better. \n\nIn the meantime, you can:\n• Browse our products\n• Check out our size guide\n• Contact our support team\n\nIs there anything else I can help with?";
     }
 
     function renderMessages() {
