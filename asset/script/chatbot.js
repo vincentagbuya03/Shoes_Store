@@ -11,8 +11,7 @@
     function getBaseUrl() {
         // Method 0: Check if PHP provided a base path globally
         if (typeof window.CHATBOT_BASE_PATH !== 'undefined' && window.CHATBOT_BASE_PATH) {
-            var loc = window.location;
-            var baseUrl = loc.protocol + '//' + loc.host + window.CHATBOT_BASE_PATH;
+            var baseUrl = window.location.origin + window.CHATBOT_BASE_PATH;
             console.log('Chatbot: Base URL from PHP global:', baseUrl);
             return baseUrl;
         }
@@ -38,12 +37,15 @@
         // Look for common patterns: /subdirectory/page.php or /page.php
         var pathParts = pathname.split('/').filter(function(part) { return part.length > 0; });
         
-        // If we have path parts and the first one doesn't end in .php
-        // it might be a subdirectory
-        if (pathParts.length > 1 && !pathParts[0].match(/\.(php|html)$/i)) {
+        // Common file extensions that indicate we're looking at a file, not a directory
+        var fileExtensions = /\.(php|html|htm|asp|aspx|jsp)$/i;
+        
+        // If we have path parts and the first one doesn't look like a file
+        // it's likely a subdirectory
+        if (pathParts.length > 1 && !fileExtensions.test(pathParts[0])) {
             var potentialBase = '/' + pathParts[0] + '/';
             console.log('Chatbot: Detected potential subdirectory:', potentialBase);
-            return loc.protocol + '//' + loc.host + potentialBase;
+            return loc.origin + potentialBase;
         }
         
         // Otherwise assume root

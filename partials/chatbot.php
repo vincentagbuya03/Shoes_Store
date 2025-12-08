@@ -74,6 +74,7 @@
  */
 function getChatbotBasePath() {
     // Configuration: subdirectory name for localhost development
+    // If deploying to a different subdirectory, update this value
     $subdirectory = 'Shoes_Store';
     
     // Method 1: Check DOCUMENT_ROOT vs SCRIPT_FILENAME to determine subdirectory
