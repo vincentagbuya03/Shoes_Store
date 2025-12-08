@@ -9,6 +9,14 @@
 
     // Get base URL dynamically for hosting compatibility
     function getBaseUrl() {
+        // Method 0: Check if PHP provided a base path globally
+        if (typeof window.CHATBOT_BASE_PATH !== 'undefined' && window.CHATBOT_BASE_PATH) {
+            var loc = window.location;
+            var baseUrl = loc.protocol + '//' + loc.host + window.CHATBOT_BASE_PATH;
+            console.log('Chatbot: Base URL from PHP global:', baseUrl);
+            return baseUrl;
+        }
+        
         // Method 1: Try to find chatbot.js script source
         var scripts = document.getElementsByTagName('script');
         for (var i = 0; i < scripts.length; i++) {
