@@ -113,9 +113,9 @@ $chatbot_base = getChatbotBasePath();
 // Optional: Log for debugging (can be enabled if needed)
 // error_log('Chatbot base path: ' . $chatbot_base . ' (method: multiple fallback detection)');
 ?>
-<link rel="stylesheet" href="<?php echo $chatbot_base; ?>asset/style/chatbot.css?v=<?php echo time(); ?>">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($chatbot_base, ENT_QUOTES, 'UTF-8'); ?>asset/style/chatbot.css?v=<?php echo time(); ?>">
 <script>
     // Provide global base path for JavaScript to use
-    window.CHATBOT_BASE_PATH = '<?php echo $chatbot_base; ?>';
+    window.CHATBOT_BASE_PATH = <?php echo json_encode($chatbot_base, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 </script>
-<script src="<?php echo $chatbot_base; ?>asset/script/chatbot.js?v=<?php echo time(); ?>" defer></script>
+<script src="<?php echo htmlspecialchars($chatbot_base, ENT_QUOTES, 'UTF-8'); ?>asset/script/chatbot.js?v=<?php echo time(); ?>" defer></script>

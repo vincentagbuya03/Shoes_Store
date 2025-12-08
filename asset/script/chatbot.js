@@ -30,14 +30,20 @@
             }
         }
         
-        // Method 2: Use current location and determine base
+        // Method 2: Use current location and analyze path structure
         var loc = window.location;
         var pathname = loc.pathname;
         
-        // Check if we're in Shoes_Store subdirectory
-        if (pathname.indexOf('/Shoes_Store/') !== -1) {
-            console.log('Chatbot: Detected Shoes_Store subdirectory');
-            return loc.protocol + '//' + loc.host + '/Shoes_Store/';
+        // Try to extract base path from current pathname
+        // Look for common patterns: /subdirectory/page.php or /page.php
+        var pathParts = pathname.split('/').filter(function(part) { return part.length > 0; });
+        
+        // If we have path parts and the first one doesn't end in .php
+        // it might be a subdirectory
+        if (pathParts.length > 1 && !pathParts[0].match(/\.(php|html)$/i)) {
+            var potentialBase = '/' + pathParts[0] + '/';
+            console.log('Chatbot: Detected potential subdirectory:', potentialBase);
+            return loc.protocol + '//' + loc.host + potentialBase;
         }
         
         // Otherwise assume root
