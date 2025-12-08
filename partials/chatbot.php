@@ -73,6 +73,9 @@
  * Uses multiple detection methods for reliability
  */
 function getChatbotBasePath() {
+    // Configuration: subdirectory name for localhost development
+    $subdirectory = 'Shoes_Store';
+    
     // Method 1: Check DOCUMENT_ROOT vs SCRIPT_FILENAME to determine subdirectory
     $doc_root = $_SERVER['DOCUMENT_ROOT'] ?? '';
     $script_filename = $_SERVER['SCRIPT_FILENAME'] ?? '';
@@ -82,26 +85,26 @@ function getChatbotBasePath() {
         $relative_path = substr($script_filename, strlen($doc_root));
         $path_parts = explode('/', trim($relative_path, '/'));
         
-        // If first part is "Shoes_Store", we're in a subdirectory
-        if (!empty($path_parts[0]) && $path_parts[0] === 'Shoes_Store') {
-            return '/Shoes_Store/';
+        // If first part matches subdirectory name, we're in a subdirectory
+        if (!empty($path_parts[0]) && $path_parts[0] === $subdirectory) {
+            return '/' . $subdirectory . '/';
         }
     }
     
     // Method 2: Check SCRIPT_NAME
     $script_name = $_SERVER['SCRIPT_NAME'] ?? '';
-    if (strpos($script_name, '/Shoes_Store/') !== false) {
-        return '/Shoes_Store/';
+    if (strpos($script_name, '/' . $subdirectory . '/') !== false) {
+        return '/' . $subdirectory . '/';
     }
     
     // Method 3: Check REQUEST_URI
     $request_uri = $_SERVER['REQUEST_URI'] ?? '';
-    if (strpos($request_uri, '/Shoes_Store/') !== false) {
-        return '/Shoes_Store/';
+    if (strpos($request_uri, '/' . $subdirectory . '/') !== false) {
+        return '/' . $subdirectory . '/';
     }
     
     // Method 4: Check if we're at root - look for common hosting patterns
-    // If none of the above detected Shoes_Store, we're likely at root (production)
+    // If none of the above detected the subdirectory, we're likely at root (production)
     return '/';
 }
 
@@ -110,9 +113,9 @@ $chatbot_base = getChatbotBasePath();
 // Optional: Log for debugging (can be enabled if needed)
 // error_log('Chatbot base path: ' . $chatbot_base . ' (method: multiple fallback detection)');
 ?>
-<link rel="stylesheet" href="<?php echo $chatbot_base; ?>asset/style/chatbot.css?v=<?php echo time(); ?>" onerror="this.onerror=null; this.href='/asset/style/chatbot.css?v=<?php echo time(); ?>'">
+<link rel="stylesheet" href="<?php echo $chatbot_base; ?>asset/style/chatbot.css?v=<?php echo time(); ?>">
 <script>
     // Provide global base path for JavaScript to use
     window.CHATBOT_BASE_PATH = '<?php echo $chatbot_base; ?>';
 </script>
-<script src="<?php echo $chatbot_base; ?>asset/script/chatbot.js?v=<?php echo time(); ?>" defer onerror="this.onerror=null; this.src='/asset/script/chatbot.js?v=<?php echo time(); ?>'"></script>
+<script src="<?php echo $chatbot_base; ?>asset/script/chatbot.js?v=<?php echo time(); ?>" defer></script>
