@@ -1,0 +1,436 @@
+/* Beautiful Animations for ShoeTakels Store */
+
+/* Fade In Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Slide In From Top */
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Slide In From Bottom */
+@keyframes slideInFromBottom {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Slide In From Left */
+@keyframes slideInFromLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Slide In From Right */
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Scale Up Animation */
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Bounce Animation */
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Glow Animation */
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+}
+
+/* Shimmer Animation */
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+/* Rotate Animation */
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Swing Animation */
+@keyframes swing {
+    20% {
+        transform: rotate(15deg);
+    }
+    40% {
+        transform: rotate(-10deg);
+    }
+    60% {
+        transform: rotate(5deg);
+    }
+    80% {
+        transform: rotate(-5deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+/* Flip Animation */
+@keyframes flip {
+    0% {
+        transform: perspective(400px) rotateY(0);
+    }
+    100% {
+        transform: perspective(400px) rotateY(360deg);
+    }
+}
+
+/* Apply animations to common elements */
+
+/* Page load animation */
+body {
+    animation: fadeIn 0.8s ease-in;
+}
+
+/* Navbar animation */
+.nav-modern {
+    animation: slideInFromTop 0.6s ease-out;
+}
+
+/* Product cards animation */
+.product-card,
+.shoe-card {
+    animation: slideInFromBottom 0.6s ease-out both;
+}
+
+/* Staggered animation for product cards */
+.product-card:nth-child(1),
+.shoe-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.product-card:nth-child(2),
+.shoe-card:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.product-card:nth-child(3),
+.shoe-card:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.product-card:nth-child(4),
+.shoe-card:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+.product-card:nth-child(5),
+.shoe-card:nth-child(5) {
+    animation-delay: 0.5s;
+}
+
+.product-card:nth-child(n+6),
+.shoe-card:nth-child(n+6) {
+    animation-delay: 0.6s;
+}
+
+/* Button hover animations */
+button,
+.btn,
+a.btn {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+button:hover,
+.btn:hover,
+a.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+button:active,
+.btn:active,
+a.btn:active {
+    transform: translateY(0);
+}
+
+/* Input field animations */
+input,
+textarea,
+select {
+    transition: all 0.3s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    transform: scale(1.02);
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.3);
+}
+
+/* Carousel animation */
+.carousel {
+    animation: fadeIn 0.8s ease-in;
+}
+
+.carousel-item {
+    animation: fadeIn 0.8s ease-in;
+}
+
+/* Modal animations */
+.modal {
+    animation: scaleUp 0.4s ease-out;
+}
+
+/* Toast notifications */
+.toast,
+.notification {
+    animation: slideInFromTop 0.4s ease-out;
+}
+
+.toast-exit,
+.notification-exit {
+    animation: slideInFromTop 0.4s ease-in reverse;
+}
+
+/* Loader animation */
+.loader,
+.spinner {
+    animation: rotate 1s linear infinite;
+}
+
+/* Pulse for loading states */
+.loading,
+.skeleton {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Search bar animation */
+.search-bar,
+.search-input {
+    animation: slideInFromTop 0.5s ease-out;
+}
+
+/* Cart icon animation */
+.cart-icon {
+    transition: transform 0.3s ease;
+}
+
+.cart-icon:hover {
+    animation: bounce 0.6s ease;
+}
+
+/* Badge animation */
+.badge {
+    animation: scaleUp 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Product image animation */
+.product-image,
+.img-fluid {
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .product-image,
+.shoe-card:hover .img-fluid {
+    transform: scale(1.05);
+}
+
+/* Link hover effects */
+a {
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #007bff;
+}
+
+/* Header animations */
+h1, h2, h3, h4, h5, h6 {
+    animation: slideInFromLeft 0.6s ease-out;
+}
+
+/* Paragraph animations */
+p {
+    animation: fadeIn 0.8s ease-in;
+}
+
+/* List animations */
+li {
+    animation: slideInFromLeft 0.6s ease-out both;
+}
+
+li:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+li:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+li:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+li:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+li:nth-child(n+5) {
+    animation-delay: 0.5s;
+}
+
+/* Announcement bar animation */
+.announcement-bar {
+    animation: slideInFromTop 0.6s ease-out;
+}
+
+/* Brand card animations */
+.brand-card,
+.brand-item {
+    animation: slideInFromBottom 0.5s ease-out both;
+}
+
+.brand-card:nth-child(1),
+.brand-item:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.brand-card:nth-child(2),
+.brand-item:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.brand-card:nth-child(3),
+.brand-item:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.brand-card:nth-child(4),
+.brand-item:nth-child(4) {
+    animation-delay: 0.4s;
+}
+
+.brand-card:nth-child(n+5),
+.brand-item:nth-child(n+5) {
+    animation-delay: 0.5s;
+}
+
+/* Feature section animations */
+.feature-box,
+.feature-item {
+    animation: scaleUp 0.6s ease-out both;
+}
+
+.feature-box:nth-child(1),
+.feature-item:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.feature-box:nth-child(2),
+.feature-item:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.feature-box:nth-child(3),
+.feature-item:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+.feature-box:nth-child(n+4),
+.feature-item:nth-child(n+4) {
+    animation-delay: 0.4s;
+}
+
+/* Smooth page transitions */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Transition for theme changes */
+* {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Disable transitions during animations to prevent flickering */
+.animating * {
+    transition: none !important;
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

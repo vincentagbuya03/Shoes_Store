@@ -73,39 +73,26 @@
  * Uses multiple detection methods for reliability
  */
 function getChatbotBasePath() {
-    // Configuration: subdirectory name for localhost development
-    // If deploying to a different subdirectory, update this value
-    $subdirectory = 'Shoes_Store';
-    
-    // Method 1: Check DOCUMENT_ROOT vs SCRIPT_FILENAME to determine subdirectory
-    $doc_root = $_SERVER['DOCUMENT_ROOT'] ?? '';
-    $script_filename = $_SERVER['SCRIPT_FILENAME'] ?? '';
-    
-    if ($doc_root && $script_filename && strpos($script_filename, $doc_root) === 0) {
-        // Get the path relative to document root
-        $relative_path = substr($script_filename, strlen($doc_root));
-        $path_parts = explode('/', trim($relative_path, '/'));
-        
-        // If first part matches subdirectory name, we're in a subdirectory
-        if (!empty($path_parts[0]) && $path_parts[0] === $subdirectory) {
-            return '/' . $subdirectory . '/';
-        }
-    }
-    
-    // Method 2: Check SCRIPT_NAME
-    $script_name = $_SERVER['SCRIPT_NAME'] ?? '';
-    if (strpos($script_name, '/' . $subdirectory . '/') !== false) {
-        return '/' . $subdirectory . '/';
-    }
-    
-    // Method 3: Check REQUEST_URI
+    // Get the current request path to determine if we're in a subdirectory
     $request_uri = $_SERVER['REQUEST_URI'] ?? '';
-    if (strpos($request_uri, '/' . $subdirectory . '/') !== false) {
-        return '/' . $subdirectory . '/';
+    $script_name = $_SERVER['SCRIPT_NAME'] ?? '';
+    $php_self = $_SERVER['PHP_SELF'] ?? '';
+    
+    // Determine current path
+    $current_path = $request_uri ?: ($script_name ?: $php_self);
+    
+    // Check if we're in /Shoes_Store/ subdirectory
+    if (strpos($current_path, '/Shoes_Store/') !== false || strpos($current_path, '/Shoes_Store') === 0) {
+        return '/Shoes_Store/';
     }
     
-    // Method 4: Check if we're at root - look for common hosting patterns
-    // If none of the above detected the subdirectory, we're likely at root (production)
+    // Check SCRIPT_FILENAME for subdirectory detection
+    $script_filename = $_SERVER['SCRIPT_FILENAME'] ?? '';
+    if (strpos($script_filename, '/Shoes_Store/') !== false || strpos($script_filename, '\Shoes_Store\\') !== false) {
+        return '/Shoes_Store/';
+    }
+    
+    // Default: assume we're at root (for production hosting where app is at root)
     return '/';
 }
 
