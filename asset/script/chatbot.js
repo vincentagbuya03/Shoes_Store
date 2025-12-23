@@ -9,7 +9,7 @@
 
     // Get base URL dynamically for hosting compatibility
     function getBaseUrl() {
-        // Method 0: Check if PHP provided a base path globally
+        // Method 0: Check if PHP provided a base path globally (PREFERRED - most reliable)
         if (typeof window.CHATBOT_BASE_PATH !== 'undefined' && window.CHATBOT_BASE_PATH) {
             var baseUrl = window.location.origin + window.CHATBOT_BASE_PATH;
             console.log('Chatbot: Base URL from PHP global:', baseUrl);
@@ -48,7 +48,7 @@
             return loc.origin + potentialBase;
         }
         
-        // Otherwise assume root
+        // Default to root directory
         console.log('Chatbot: Using root directory');
         return loc.protocol + '//' + loc.host + '/';
     }
@@ -61,9 +61,8 @@
         welcomeMessage: "Hi there! 👋 I'm the ShoeTakels Assistant. How can I help you find the perfect shoes today?"
     };
 
-    console.log('Chatbot CONFIG:', CONFIG);
-
     // DOM Elements - wait for them to be available
+    console.log('Chatbot CONFIG:', CONFIG);
     var elements = {};
 
     // State
